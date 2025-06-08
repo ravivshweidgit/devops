@@ -1,0 +1,75 @@
+Please create proper md file for this :
+
+User Data example
+=================
+
+Create EC2 as before, but this time we will edit, for User data
+
+Goto this section
+
+Advanced details
+===================
+
+scroll down to User data and write :
+
+#!/bin/bash
+sudo yum update -y
+sudo yum install -y docker
+
+
+Launch instance
+
+go : 
+https://eu-north-1.console.aws.amazon.com/ec2/home?region=eu-north-1#Instances:
+
+Click the refresh instance(AWS is not so good with refreshong the screen)
+
+choose the line, click the connect, 
+
+copy the connect link:
+4. Connect to your instance using its Public DNS:
+
+Example:
+ssh -i "key01.pem" ec2-user@ec2-51-20-52-29.eu-north-1.compute.amazonaws.com
+
+Do to linux where you AWS key is :
+ssh -i "key01.pem" ec2-user@ec2-51-20-52-29.eu-north-1.compute.amazonaws.com
+
+ravivm@ravivm-N501VW:~/Downloads$ ssh -i "key01.pem" ec2-user@ec2-51-20-52-29.eu-north-1.compute.amazonaws.com
+   ,     #_
+   ~\_  ####_        Amazon Linux 2023
+  ~~  \_#####\
+  ~~     \###|
+  ~~       \#/ ___   https://aws.amazon.com/linux/amazon-linux-2023
+   ~~       V~' '->
+    ~~~         /
+      ~~._.   _/
+         _/ _/
+       _/m/'
+Last login: Wed May 28 18:26:46 2025 from 79.177.133.211
+[ec2-user@ip-172-31-27-102 ~]$ docker --version
+Docker version 25.0.8, build 0bab007
+
+Docker is installed configured in user data, we have achived the goal of this phase.
+
+
+
+
+Change instance type
+=====================
+
+Now we will change instance type
+Goto instances, instance state, instance stop
+Actions instance settings ,  Change instance type
+take t3.nano and click change
+
+You need to start the new machine
+
+Then you need to go to connect / SSH client / and copy the new connection to the updated EC2 instance
+
+Example:
+
+ssh -i "key01.pem" ec2-user@ec2-16-170-237-87.eu-north-1.compute.amazonaws.com
+
+
+

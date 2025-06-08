@@ -1,0 +1,386 @@
+"Device '{}' not found".format(device_name))
+        finally:
+            self.close_device(device)
+
+    # Public
+    def set_breathe(self, device_name, color, speed, brightness):
+        device = self.open_device(device_name)
+        try:
+            if device is not None:
+                print("set_breathe('{}', '{}', {}, {})".format(device_name, color, speed, brightness))
+                device.send_breathe_command(
+                    color=color,
+                    speed=self.unmarshall_num_par(speed),
+                    brightness=self.unmarshall_num_par(brightness))
+            else:
+                raise GDeviceException("Device '{}' not found".format(device_name))
+        finally:
+            self.close_device(device)
+
+    # Public
+    def set_cycle(self, device_name, speed, brightness):
+        device = self.open_device(device_name)
+        try:
+            if device is not None:
+                print("set_cycle('{}', {}, {})".format(device_name, speed, brightness))
+                device.send_cycle_command(
+                    speed=self.unmarshall_num_par(speed),
+                    brightness=self.unmarshall_num_par(brightness))
+            else:
+                raise GDeviceException("Device '{}' not found".format(device_name))
+        finally:
+            self.close_device(device)
+
+    # Public
+    def echo(self, s):
+        """returns whatever is passed to it"""
+        self.lock.acquire()
+        print("echo('{}')".format(s))
+        self.lock.release()
+        return s
+
+    # Public
+    def quit(self):
+        """removes this object from the DBUS connection and exits"""
+        self.lock.acquire()
+        if self.loop is not None:
+            self.loop.quit()
+        self.lock.release()
+
+
+class GlightClient(GlightRemoteCommon):
+
+    def __init__(self, verbose=False):
+        """"""
+        self.verbose=verbose
+        self.loop = None
+        self.bus  = None
+        self.proxy = None # type: GlightRemoteCommon
+
+    def connect(self):
+        self.bus = self.get_bus()
+        self.proxy = self.bus.get(GlightService.bus_name)
+
+    def start_loop(self):
+        if self.loop is None:
+            self.loop = GLib.MainLoop()
+        self.loop.run()
+
+    def stop_loop(self):
+        if self.loop is not None:
+            self.loop.quit()
+
+    def marshall_num_par(self, num_val, if_none=-1):
+        """None is not allowed over dbus, so -1 is the None equivalent over the wire"""
+        if num_val is None:
+            return if_none
+        return num_val
+
+    def load_state(self):
+        self.proxy.load_state()
+
+    def save_state(self):
+        self.proxy.save_state()
+
+    def get_state(self):
+        return self.proxy.get_state()
+
+    def set_state(self, state_json):
+        return self.proxy.set_state(state_json)
+
+    def list_devices(self):
+        return self.proxy.list_devices()
+
+    def set_color_at(self, device, color, field):
+        self._log("Setting color at device '{}' to {} at field:{}".format(device, color, field))
+        self.proxy.set_color_at(device, color, field)
+
+    def set_colors(self, device, colors):
+        self._log("Setting colors at device '{}' to {}".format(device, colors))
+        self.proxy.set_colors(device, colors)
+
+    def set_breathe(self, device, color, speed, brightness):
+        self._log("Setting breathe at device '{}' to color:'{}' speed:{} brightness:{}".format(device, color, speed, brightness))
+        self.proxy.set_breathe(
+            device,
+            color,
+            self.marshall_num_par(speed),
+            self.marshall_num_par(brightness))
+
+    def set_cycle(self, device, speed, brightness):
+        self._log("Setting cycle at device '{}' to speed:{} brightness:{}".format(device, speed, brightness))
+        self.proxy.set_cycle(
+            device,
+            self.marshall_num_par(speed),
+            self.marshall_num_par(brightness))
+
+    def echo(self, s):
+        return self.proxy.echo(s)
+
+    def _log(self, msg):
+        if self.verbose:
+            print(msg)
+
+    def subscribe(self, dbus_filter, callback):
+        """
+        :param dbus_filter:
+        :param callback:
+        :return:
+
+            on_signal_emission(self, *args) -> Data str(args[4][0])
+        """
+        self.bus.subscribe(object=dbus_filter, signal_fired=callback)
+
+    def do(self):
+
+        print(GlightService.bus_name)
+        print(GlightService.bus_path)
+
+        device = "g213"
+
+        print('CALL self.list_devices()')
+        print(self.list_devices())
+
+        print('CALL self.set_color_at("FFEEDD", 5)')
+        print(self.set_color_at(device, "FFEEDD", 5))
+
+        print('CALL self.set_colors(["DEADBE", "4FDEAD"])')
+        print(self.set_colors(device, ["DEADBE", "4FDEAD"]))
+
+        print('CALL self.set_breathe("CCDDEE", 2000)')
+        print(self.set_breathe(device, "CCDDEE", 2000))
+
+        print('CALL self.set_cycle(4000)')
+        print(self.set_cycle(device, 4000))
+
+        print('CALL self.set_color_at("ddeeff", 0)')
+        print(self.set_color_at(device, "ddeeff", 0))
+
+# App handling ----------------------------------------------------------------
+
+class GlightApp(object):
+
+    @staticmethod
+    def get_val_at(values, index, default=None):
+        if len(values) > index:
+            return values[index]
+        return default
+
+    @staticmethod
+    def get_num_at(values, index, default=None):
+        if len(values) > index:
+            return int(values[index])
+        return default
+
+    @staticmethod
+    def get_argsparser():
+        """"""
+        argsparser = argparse.ArgumentParser(
+            description='Changes the colors on some Logitech devices (V' + app_version + ')', add_help=False)
+
+        argsparser.add_argument('-d', '--device',  dest='device',  nargs='?', action='store', help='select device (#DEVICES)', metavar='device_name')
+        argsparser.add_argument('-c', '--color',   dest='colors',  nargs='+', action='store', help='set color(s)', metavar='color')
+        argsparser.add_argument('-x', '--cycle',   dest='cycle',   nargs='+', action='store', help='set color cycle animation',  metavar='#X') #,  metavar='speed [brightness]')
+        argsparser.add_argument('-b', '--breathe', dest='breathe', nargs='+', action='store', help='set breathing animation',  metavar='#B') #, metavar='color [speed [brightness]]')
+        argsparser.add_argument('--backend',       dest='backend', nargs=1,   action='store', help='set backend (usb1, pyusb), usb1 is strongly recommended', metavar='(usb1|pyusb)')
+
+        argsparser.add_argument('--state-file',    dest='state_file', nargs='?', action='store', help='file where the state is saved', metavar='filename')
+        argsparser.add_argument('--load-state',    dest='load_state', action='store_const', const=True, help='load state from state file')
+        argsparser.add_argument('--save-state',    dest='save_state', action='store_const', const=True, help='save state to state file')
+
+        argsparser.add_argument('-C', '--client',  dest='client',  action='store_const', const=True, help='run as client')
+        argsparser.add_argument('--service',       dest='service', action='store_const', const=True, help='run as service')
+        argsparser.add_argument('-l', '--list',    dest='do_list', action='store_const', const=True, help='list devices')
+        argsparser.add_argument('-v', '--verbose', dest='verbose', action='store_const', const=True, help='be verbose')
+        argsparser.add_argument('-h', '--help',    dest='help',    action='store_const', const=True, help='show help')
+
+        argsparser.add_argument('--experimental', dest='experimental', nargs='*', action='store',
+                                help='experimental features', metavar='name')
+
+        return argsparser
+
+    @staticmethod
+    def get_args():
+        return GlightApp.get_argsparser().parse_args()
+
+    @staticmethod
+    def handle_args(args=None, verbose=None):
+        """"""
+        if args is None:
+            args=GlightApp.get_args()
+
+        if args.help:
+            reg = GDeviceRegistry()
+
+            help = GlightApp.get_argsparser().format_help()
+            help = help.replace("#X [#X ...]", "speed [brightness]")
+            help = help.replace("#B [#B ...]", "color [speed [brightness]]")
+
+            dev_info = ""
+            for gdevice in reg.known_devices:
+                if len(dev_info) > 0:
+                    dev_info = dev_info + "|"
+                dev_info = dev_info + gdevice.device_name_short
+
+            help = help.replace("#DEVICES", dev_info)
+            print(help)
+
+            print("Color values are always given in hex RRGGBB format e.g. ffb033.")
+            print()
+
+            print("Value ranges for each device are:")
+            for gdevice in reg.known_devices:
+                print
+                print("  {0} ({1})".format(gdevice.device_name, gdevice.device_name_short))
+                print("      {0}: {1}".format("Color segments", gdevice.max_color_fields or 1))
+
+                spec = gdevice.speed_spec  # type: GValueSpec
+                print("      {0}: {1} .. {2} (default {3})".format("Speed", spec.min_value, spec.max_value, spec.default_value))
+
+                spec = gdevice.bright_spec  # type: GValueSpec
+                print("      {0}: {1} .. {2} (default {3})".format("Brightness", spec.min_value, spec.max_value, spec.default_value))
+
+            # GlightApp.get_argsparser().print_help()
+            print()
+            sys.exit(0)
+
+        # if args.verbose:
+        #     print(args)
+
+        if verbose is None:
+            verbose = args.verbose or False
+
+        if args.experimental is not None:
+            GlightApp.handle_experimental_features(args=args, verbose=args.verbose)
+        else:
+            GlightApp.handle(args=args, verbose=args.verbose)
+            # if args.service or args.client:
+            #     GlightApp.handle_client_service(args=args, verbose=args.verbose)
+            # else:
+            #     GlightApp.handle_device_control(args=args, verbose=args.verbose)
+
+        return args
+
+    @staticmethod
+    def handle(args, verbose=False):
+        """"""
+        if args.service:
+            srv = GlightService(state_file=args.state_file, verbose=verbose)
+            srv.run()
+            sys.exit(0) # Ends here
+
+        else:
+            backend_type = GlightController.BACKEND_LOCAL
+            if args.client:
+                backend_type = GlightController.BACKEND_DBUS
+            client = GlightController(backend_type, verbose=verbose)
+
+            # Saving state
+            if args.load_state:
+                if verbose:
+                    if args.state_file is None:
+                        print("Loading state remotely")
+                    else:
+                        print("Loading state from {}".format(args.state_file))
+                client.load_state(args.state_file)
+
+            # Listing devices
+            if args.do_list:
+                devices = client.list_devices()
+                print("{} devices:".format(len(devices)))
+                i = 0
+                for device_name_short, device_name in devices.items():
+                    i = i + 1
+                    print("[{}] {} ({})".format(i, device_name, device_name_short))
+
+            # Setting colors
+            if args.colors is not None:
+                if verbose:
+                    print("Setting device {} colors to {}"
+                          .format(args.device, args.colors))
+                client.set_colors(
+                    device_name=args.device,
+                    colors=args.colors)
+
+            # Setting breathing
+            if args.breathe is not None:
+                color = GlightApp.get_val_at(args.breathe, 0)
+                speed = GlightApp.get_num_at(args.breathe, 1)
+                brightness = GlightApp.get_num_at(args.breathe, 2)
+
+                if verbose:
+                    print("Setting device {} breathe mode to color {}, speed {}, brightness {}"
+                          .format(args.device, color, speed, brightness))
+
+                client.set_breathe(
+                    device_name=args.device,
+                    color=color,
+                    speed=speed,
+                    brightness=brightness)
+
+            # Setting cycle
+            if args.cycle is not None:
+                speed = GlightApp.get_num_at(args.cycle, 0)
+                brightness = GlightApp.get_num_at(args.cycle, 1)
+
+                if verbose:
+                    print("Setting device {} cycle mode to speed {}, brightness {}"
+                          .format(args.device, speed, brightness))
+
+                client.set_cycle(
+                    device_name=args.device,
+                    speed=speed,
+                    brightness=brightness)
+
+            # Saving state
+            if args.save_state:
+                if verbose:
+                    if args.state_file is None:
+                        print("Saving state remotely")
+                    else:
+                        print("Saving state to {}".format(args.state_file))
+                client.save_state(args.state_file)
+
+    @staticmethod
+    def handle_experimental_features(args, verbose=False):
+        """"""
+        for experiment in args.experimental:
+            if experiment == 'dbus-service':
+                srv = GlightService()
+                srv.run()
+                sys.exit(0)
+
+            elif experiment == 'dbus-client':
+                client = GlightClient()
+                client.connect()
+                client.do()
+
+            elif experiment == 'devdev':
+                state = GDeviceState()
+                for i in range(1,6):
+                    state.set_color_at(chr(ord("a")+i), i)
+
+                print(json.dumps(state.as_dict()))
+
+            else:
+                print("Unknown experimental feature '{}'".format(experiment))
+                sys.exit(2)
+
+
+if __name__ == "__main__":
+
+    # App -----------------------------------------
+    # here we go ...
+
+    try:
+
+        args = GlightApp.get_args()
+        GlightApp.handle_args(args=args)
+
+    except Exception as ex:
+        print("Exception: {}".format(ex))
+        if args.verbose:
+            print(traceback.format_exc())
+        sys.exit(1)
+    finally:
+        pass

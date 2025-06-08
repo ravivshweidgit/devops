@@ -1,0 +1,259 @@
+#!/bin/bash
+
+# G213 RGB Control Script with Presets and Dynamic Options
+# Requires Python virtualenv at /home/ravivm/projects/glight/glight/venv
+
+# Global config
+GLIGHT_PATH="/home/ravivm/projects/glight/glight/glight.py"
+VENV_PATH="/home/ravivm/projects/glight/glight/venv"
+STATE_FILE="$HOME/g213.gstate"
+CONFIG_FILE="$HOME/.g213rc"
+NUM_ZONES=6 # Assuming 6 controllable zones on G213
+
+# Load config if exists
+if [[ -f "$CONFIG_FILE" ]]; then
+  source "$CONFIG_FILE"
+fi
+
+# Default settings if not loaded
+: "${BRIGHTNESS:=100}"
+: "${SPEED:=6000}"
+DEFAULT_COLORS=("0000ff" "ff0000" "00ff00" "ffff00" "ff00ff" "00ffff") # Blue, Red, Green, Yellow, Magenta, Cyan
+
+# Supported named colors
+declare -A COLORS=(
+  [red]=ff0000 [green]=00ff00 [blue]=0000ff [cyan]=00ffff
+  [magenta]=ff00ff [yellow]=ffff00 [white]=ffffff [orange]=ff8000
+  [purple]=800080 [pink]=ffc0cb
+)
+
+# Define effects
+declare -A EFFECTS=(
+  [1]="red red green cyan blue magenta"
+)
+
+# Activate virtualenv
+source "$VENV_PATH/bin/activate"
+
+# Show usage menu
+usage() {
+  clear
+  echo "G213 RGB Control Script"
+  echo "Usage: $0 {0|ls|sv|ld|br <color>|cl <color>|cy [all|color ...]|p|spd <ms>|bri <val>|h|[1-6]|eff <id>}"
+  echo ""
+  echo "Commands:"
+  echo "  0          : Pure white all zones"
+  echo "  ls         : List devices"
+  echo "  sv         : Save state"
+  echo "  ld         : Load state"
+  echo "  br <color> : Breathe effect with color (name or hex)"
+  echo "  cl <color> : Set static color across keyboard"
+  echo "  cy [colors]: Cycle all default or specific color(s) (moving)"
+  echo "  p          : Cycle purple shades"
+  echo "  spd <ms>   : Set speed for effects (1000-20000)"
+  echo "  bri <val>  : Set brightness (1-100)"
+  echo "  h          : Show this help message"
+  echo ""
+  echo "Zone Sets (Shift Right based on: Blue, Red, Green, Yellow, Magenta, Cyan):"
+  echo "  1          : Shift Right 1 (Red, Green, Yellow, Magenta, Cyan, Blue)"
+  echo "  2          : Shift Right 2 (Green, Yellow, Magenta, Cyan, Blue, Red)"
+  echo "  3          : Shift Right 3 (Yellow, Magenta, Cyan, Blue, Red, Green)"
+  echo "  4          : Shift Right 4 (Magenta, Cyan, Blue, Red, Green, Yellow)"
+  echo "  5          : Shift Right 5 (Cyan, Blue, Red, Green, Yellow, Magenta)"
+  echo "  6          : Shift Right 6 (Blue, Red, Green, Yellow, Magenta, Cyan - back to original)"
+  echo ""
+  echo "Effects:"
+  echo "  eff <id>   : Apply a predefined effect"
+  echo "    1        : Rainbow (Red, Orange, Yellow, Green, Cyan, Blue, Purple, Magenta, Pink)"
+  echo ""
+  echo "Examples:"
+  echo "  g213 eff 1     # Apply the rainbow effect"
+  echo "  g213 [1-6]     # Apply Shift Right color set"
+  echo "  g213 cy red blue # Manually cycle red and blue"
+  echo "  g213 br cyan   # Breathe cyan"
+  echo "  g213 cl pink   # Static pink color"
+  echo "  g213 spd 4000  # Set speed to 4000ms"
+  echo "  g213 bri 80    # Set brightness to 80"
+  echo ""
+  echo "Supported colors:"
+  for key in "${!COLORS[@]}"; do echo -n "$key "; done; echo
+}
+
+# Resolve color input
+get_color_hex() {
+  local input="$1"
+  if [[ ${COLORS[$input]+_} ]]; then
+    echo "${COLORS[$input]}"
+  elif [[ "$input" =~ ^[0-9a-fA-F]{6}$ ]]; then
+    echo "$input"
+  else
+    echo ""  # invalid
+  fi
+}
+
+# Apply colors to zones
+apply_zone_colors() {
+  local colors=("$@")
+  local num_colors="${#colors[@]}"
+  local zone_colors=()
+
+  for (( i=0; i<$NUM_ZONES; i++ )); do
+    local color_index=$(( i % num_colors ))
+    zone_colors+=("${colors[$color_index]}")
+  done
+
+  python3 "$GLIGHT_PATH" -d g213 -c "${zone_colors[@]}"
+}
+
+# Shift colors right
+shift_right() {
+  local original_colors=("${DEFAULT_COLORS[@]}")
+  local shift_count="$1"
+  local shifted_colors=()
+
+  for (( i=0; i<$NUM_ZONES; i++ )); do
+    local index=$(( (i + shift_count) % NUM_ZONES ))
+    shifted_colors+=("${original_colors[$index]}")
+  done
+
+  apply_zone_colors "${shifted_colors[@]}"
+}
+
+# Cycle manually through colors (moving effect)
+manual_cycle() {
+  shift
+  local color_list=()
+  local num_colors
+  if [[ "$#" -eq 0 ]]; then
+    echo "Usage: $0 cy <color1> [color2 ...]"
+    return 1
+  fi
+  for arg in "$@"; do
+    color_hex=$(get_color_hex "$arg")
+    if [[ -n "$color_hex" ]]; then
+      color_list+=("$color_hex")
+    else
+      echo "Invalid color: $arg"; usage; exit 1
+    fi
+  done
+  num_colors="${#color_list[@]}"
+
+  echo "Cycling through: ${color_list[*]} (Press Ctrl+C to stop)"
+  while true; do
+    local shifted_colors=()
+    # Create a shifted version of the color list for the zones
+    for (( i=0; i<$NUM_ZONES; i++ )); do
+      local color_index=$(( i % num_colors ))
+      shifted_colors+=("${color_list[$color_index]}")
+    done
+    apply_zone_colors "${shifted_colors[@]}"
+    sleep $(awk "BEGIN {print $SPEED/1000}")
+
+    # Rotate the color list for the next iteration
+    local first_color="${color_list[0]}"
+    unset color_list[0]
+    color_list=("${color_list[@]}" "$first_color")
+  done
+}
+
+# Apply predefined effects
+apply_effect_() {
+  local effect_id="$1"
+  local colors_str="${EFFECTS[$effect_id]}"
+  if [[ -n "$colors_str" ]]; then
+    manual_cycle $colors_str
+  else
+    echo "Error: Effect '$effect_id' not found."
+    usage
+    return 1
+  fi
+}
+
+# Apply predefined effects
+apply_effect() {
+  local effect_id="$1"
+  local colors_str="${EFFECTS[$effect_id]}"
+  if [[ -n "$colors_str" ]]; then
+    manual_cycle $colors_str
+  else
+    echo "Error: Effect '$effect_id' not found."
+    usage
+    return 1
+  fi
+}
+
+# Main logic
+case "$1" in
+  0)
+    python3 "$GLIGHT_PATH" -d g213 -c ffffff
+    ;;
+  ls)
+    python3 "$GLIGHT_PATH" -l
+    ;;
+  sv)
+    python3 "$GLIGHT_PATH" --save-state --state-file "$STATE_FILE"
+    ;;
+  ld)
+    python3 "$GLIGHT_PATH" --load-state --state-file "$STATE_FILE"
+    ;;
+  br)
+    color_hex=$(get_color_hex "$2")
+    if [[ -n "$color_hex" ]]; then
+      python3 "$GLIGHT_PATH" -d g213 -b "$color_hex" "$SPEED" "$BRIGHTNESS"
+    else
+      echo "Invalid color: $2"; usage
+    fi
+    ;;
+  cl)
+    color_hex=$(get_color_hex "$2")
+    if [[ -n "$color_hex" ]]; then
+      python3 "$GLIGHT_PATH" -d g213 -c "$color_hex"
+    else
+      echo "Invalid color: $2"; usage
+    fi
+    ;;
+  cy)
+    manual_cycle "$@"
+    ;;
+  p)
+    apply_zone_colors "800080" "9932CC" "BA55D3" "DDA0DD"
+    ;;
+  spd)
+    if [[ "$2" =~ ^[0-9]+$ ]]; then
+      echo "SPEED=$2" > "$CONFIG_FILE"
+      echo "BRIGHTNESS=$BRIGHTNESS" >> "$CONFIG_FILE"
+      echo "Speed set to $2 ms"
+    else
+      echo "Invalid speed. Use numbers like 4000"; usage
+    fi
+    ;;
+  bri)
+    if [[ "$2" =~ ^[0-9]+$ ]]; then
+      echo "BRIGHTNESS=$2" > "$CONFIG_FILE"
+      echo "SPEED=$SPEED" >> "$CONFIG_FILE"
+      echo "Brightness set to $2"
+    else
+      echo "Invalid brightness. Use numbers like 80"; usage
+    fi
+    ;;
+  [1-6])
+    shift_right "$1"
+    ;;
+  eff)
+    if [[ -n "$2" ]]; then
+      apply_effect "$2"
+    else
+      echo "Usage: $0 eff <effect_id>"
+      usage
+      return 1
+    fi
+    ;;
+  h)
+    usage
+    ;;
+  *)
+    usage
+    ;;
+esac
+
+deactivate

@@ -1,0 +1,470 @@
+#!/usr/bin/env python3
+
+'''
+GLight controls LEDs of some Logitech devices
+
+Copyright (C) 2017  Martin Feil aka. SGDW
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+Acknowledgements:
+
+* This software was inspired by G213Colors written SebiTimeWaster
+  https://github.com/SebiTimeWaster/G213Colors
+  Thank you!
+
+'''
+
+# pylint: disable=C0326
+
+import sys
+import array
+import json
+
+# PyUSB
+try:
+    import usb.core
+    import usb.control
+    import usb.util
+except:
+    pass # ignore
+
+# libusb1
+import usb1
+
+import binascii
+import argparse
+from time import sleep
+import traceback
+
+try:
+    from pydbus import SystemBus, SessionBus
+    from pydbus.generic import signal
+except ImportError:
+    print("pydbus library not installed. Service will not work.");
+
+try:
+    from gi.repository import GLib
+except ImportError:
+    import glib as GLib
+
+from threading import Semaphore
+
+app_version = "0.1"
+
+default_time = 1000
+
+# Note to self: /usr/lib/python2.7/dist-packages/
+
+class UsbConstants(object):
+    HID_REQ_SET_REPORT=0x09
+
+# USB Backends ----------------------------------------------------------------
+
+class UsbBackend(object):
+
+    TYPE_PYUSB = 'pyusb'
+    TYPE_USB1  = 'usb1'
+
+    TYPE_DEFAULT = TYPE_USB1
+
+    def __init__(self, vendor_id, product_id, w_index):
+        """"""
+        self.verbose = False
+
+        self.device = None  # device resource
+        self.is_detached = True
+
+        self.vendor_id  = vendor_id   # The vendor id
+        self.product_id = product_id  # The product id
+        self.w_index    = w_index     # Interface
+
+        self.supports_interrupts = False
+
+        self.is_detached = False  # If kernel driver needs to be reattached
+
+    def get_usb_device(self):
+        """"""
+        raise NotImplemented()
+
+    def connect(self, device=None):
+        """"""
+        raise NotImplemented()
+
+    def disconnect(self):
+        """"""
+        raise NotImplemented()
+
+    def send_data(self, bm_request_type, bm_request, w_value, data):
+        """"""
+        pass
+
+    def read_interrupt(self, endpoint, length, callback=None, user_data=None, timeout=0):
+        """"""
+        pass
+
+    def handle_events(self):
+        pass
+
+    def _log(self, msg):
+        if self.verbose:
+            print(msg)
+
+
+class UsbBackendPyUsb(UsbBackend):
+
+    def __init__(self, vendor_id, product_id, w_index):
+        """"""
+        super(UsbBackendPyUsb, self).__init__(vendor_id, product_id, w_index)
+
+    def get_usb_device(self):
+        """"""
+        return usb.core.find(idVendor = self.vendor_id, idProduct = self.product_id)
+
+    def connect(self, device=None):
+        # find G product
+        if device is None:
+            self.device = self.get_usb_device()
+        else:
+            self.device = device
+
+        # if not found exit
+        if self.device is None:
+            raise ValueError("USB device not found!")
+
+        self.digg_info()
+
+        # if a kernel driver is attached to the interface detach it, otherwise no data can be send
+        if self.device.is_kernel_driver_active(self.w_index):
+            self.device.detach_kernel_driver(self.w_index)
+            self.is_detached = True
+
+        return self.device
+
+    def disconnect(self):
+        # free device resource to be able to reattach kernel driver
+        usb.util.dispose_resources(self.device)
+        # reattach kernel driver, otherwise special key will not work
+        if self.is_detached:
+            self.device.attach_kernel_driver(self.w_index)
+
+    def send_data(self, bm_request_type, bm_request, w_value, data):
+        # decode data to binary and send it
+        self._log(">> '{}'".format(data))
+        self.device.ctrl_transfer(bm_request_type, bm_request, w_value, self.w_index, binascii.unhexlify(data), 1000)
+
+    def read_interrupt(self, endpoint, length, callback=None, user_data=None, timeout=0):
+        """"""
+        pass
+
+    def digg_info(self):
+        print("**digg_info**")
+        # set the active configuration. With no arguments, the first
+        # configuration will be the active one
+        # self.device.set_configuration()
+
+        # get an endpoint instance
+        cfg = self.device.get_active_configuration()
+        intf = cfg[(0, 0)]
+
+        ep = usb.util.find_descriptor(
+            intf,
+            # match the first OUT endpoint
+            custom_match= \
+                lambda e: \
+                    usb.util.endpoint_direction(e.bEndpointAddress) == \
+                    usb.util.ENDPOINT_OUT)
+
+        print("Config:")
+        print(cfg)
+
+        print("Endpoint OUT:")
+        print(ep)
+
+
+class UsbBackendUsb1(UsbBackend):
+
+    def __init__(self, vendor_id, product_id, w_index):
+        """"""
+        super(UsbBackendUsb1, self).__init__(vendor_id, product_id, w_index)
+        self.context = None
+        self.interface = None
+        self.supports_interrupts = True
+
+    def get_usb_device(self):
+        """"""
+        self._assert_valid_usb_context()
+        return self.context.openByVendorIDAndProductID(
+            vendor_id=self.vendor_id,
+            product_id=self.product_id,
+            skip_on_error=True)
+
+    def connect(self, device=None):
+        self._assert_valid_usb_context()
+
+        # find G product
+        if device is None:
+            self.device = self.get_usb_device()
+        else:
+            self.device = device
+
+        # if not found exit
+        if self.device is None:
+            raise ValueError("USB device not found!")
+
+        # if a kernel driver is attached to the interface detach it, otherwise no data can be send
+        if self.device.kernelDriverActive(self.w_index):
+            self._log("Detaching kernel on interface {}".format(self.w_index))
+            self.device.detachKernelDriver(self.w_index)
+            self.is_detached = True
+        else:
+            self._log("Kernel not active on interface {}".format(self.w_index))
+
+        self.interface = self.get_interface()
+
+        return self.device
+
+    def disconnect(self):
+        # free device resource to be able to reattach kernel driver
+        try:
+            if self.interface is not None:
+                self.device.releaseInterface(self.w_index)
+        except Exception as ex:
+            self._log("Exception while releasing interface: {}".format(ex))
+        finally:
+            # self.context.
+            # self.device.close()
+            pass
+
+        # reattach kernel driver, otherwise special key will not work
+        if self.is_detached:
+            self._log("Attaching kernel on interface {}".format(self.w_index))
+            self.device.attachKernelDriver(self.w_index)
+
+        if self.device is not None:
+            self.device.close()
+            self.device = None
+
+        if self.context is not None:
+            self.context.close()
+            self.context = None
+
+    def get_interface(self):
+        """"""
+        return self.device.claimInterface(self.w_index)
+
+    def send_data(self, bm_request_type, bm_request, w_value, data):
+        # decode data to binary and send it
+        self._log("Send >> '{}'".format(data))
+        self.device.controlWrite(bm_request_type, bm_request, w_value, self.w_index, binascii.unhexlify(data), 1000)
+
+    def read_interrupt(self, endpoint, length, callback=None, user_data=None, timeout=0):
+        """"""
+        transfer = self.device.getTransfer() # type: usb1.USBTransfer
+        transfer.setInterrupt(endpoint=endpoint, buffer_or_len=length, callback=callback, user_data=user_data, timeout=timeout)
+        transfer.submit()
+        return transfer
+
+    def handle_events(self, timeout=0):
+        self.context.handleEventsTimeout(timeout)
+
+    def _assert_valid_usb_context(self):
+        if self.context is None:
+            self.context = usb1.USBContext()
+
+# GDevices --------------------------------------------------------------------
+
+class GDeviceRegistry(object):
+    """Enumerates the available G-Devices"""
+
+    STATE_FILE_EXTENSION = ".gstate"
+
+    def __init__(self, backend_type=UsbBackend.TYPE_DEFAULT, verbose=False, strict_filenames=True):
+        """"""
+        self.verbose = verbose
+        self.strict_filenames = strict_filenames
+        self.backend_type = backend_type
+        self.known_devices = []
+        self.init_known_devices()
+
+    def init_known_devices(self):
+        self.known_devices = [G203(self.backend_type), G213(self.backend_type)]
+        for known_device in self.known_devices:
+            known_device.verbose = self.verbose
+
+    def find_devices(self):
+        """
+        :return: GDevice[]
+        """
+
+        found_devices = []
+        for known_device in self.known_devices:
+            if known_device.exists():
+                found_devices.append(known_device)
+
+        return found_devices
+
+    def get_device(self, short_name_filter=None):
+        found_devices = self.find_devices()
+        for found_device in found_devices:
+            if found_device.device_name_short == short_name_filter:
+                return found_device
+        return None
+
+    def get_known_device(self, short_name_filter=None):
+        for known_device in self.known_devices:
+            if known_device.device_name_short == short_name_filter:
+                return known_device
+        return None
+
+    def get_state_of_devices(self):
+        states = {}
+        for known_device in self.known_devices:
+            states[known_device.device_name_short] = known_device.device_state.as_dict()
+        return states
+
+    def set_state_of_devices(self, states):
+        states = {}
+        for known_device in self.known_devices:
+            if known_device.device_name_short in states:
+                known_device.device_state.import_dict(states[known_device.device_name_short])
+
+    def restore_states_of_devices(self):
+        for known_device in self.known_devices:
+            device_name = known_device.device_name_short
+            try:
+                known_device.restore_state()
+            except Exception as ex:
+                print("Could not restore state of device '{}'".format(device_name))
+                print("Exception: {}".format(ex))
+                if self.verbose:
+                    print(traceback.format_exc())
+
+    def load_state_from_json(self, state_json):
+        state_data = json.loads(state_json)
+        for known_device in self.known_devices:
+            device_name = known_device.device_name_short
+            if device_name in state_data:
+                try:
+                    known_device.device_state.import_dict(state_data[device_name])
+                except Exception as ex:
+                    print("Could not restore state of device '{}'".format(device_name))
+                    print("Exception: {}".format(ex))
+                    if self.verbose:
+                        print(traceback.format_exc())
+
+
+    def load_state_of_devices(self, filename):
+        """"""
+        state = self.get_state_of_devices()
+
+        fh = open(filename, "r")
+        state_json = fh.read()
+        fh.close()
+
+        self.load_state_from_json(state_json)
+
+    def write_state_of_devices(self, filename):
+        """"""
+        self._assert_valid_state_filename(filename)
+        state_json = self.get_state_as_json()
+
+        fh = open(filename, "w")
+        fh.write(state_json)
+        fh.close()
+
+    def get_state_as_json(self):
+        return json.dumps(self.get_state_of_devices(), indent=4)
+
+    def _assert_valid_state_filename(self, filename):
+        if self.strict_filenames:
+            if not filename.endswith(self.STATE_FILE_EXTENSION):
+                raise GDeviceException("Invalid filename! Must end with '{}'".format(self.STATE_FILE_EXTENSION))
+
+
+class GDeviceState(object):
+
+    def __init__(self):
+        """"""
+        self.attrs = ["colors", "colors_uniform", "static", "breathing", "cycling", "brightness", "speed"]
+        self.colors = None
+        self.colors_uniform = False
+        self.static = False
+        self.breathing = False
+        self.cycling = False
+        self.brightness = None
+        self.speed = None
+
+    def reset(self, clear_colors=False):
+        if clear_colors:
+            self.colors = None
+        self.colors_uniform = False
+        self.static = False
+        self.breathing = False
+        self.cycling = False
+        self.brightness = None
+        self.speed = None
+
+    def reset_colors(self, keep_colors=False):
+        self.colors = None
+
+    def resize_colors(self, size):
+        if self.colors is None:
+            self.colors = []
+
+        clrs_len = len(self.colors)
+        if clrs_len < size:
+            self.colors.extend([None]*(size-clrs_len))
+            clrs_len = len(self.colors)
+        return clrs_len
+
+    def set_color_at(self, color, index=0):
+        self.resize_colors(index+1)
+        self.colors[index] = color
+
+    def import_dict(self, values):
+        for attr in self.attrs:
+            if attr in values:
+                self.__setattr__(attr, values[attr])
+
+        return self
+
+    def as_dict(self):
+        data = {}
+        for attr in self.attrs:
+            data[attr] = self.__getattribute__(attr)
+        return data
+
+
+class GValueSpec(object):
+
+    def __init__(self, format, min_value, max_value, default_value=None):
+        self.format = format
+        self.min_value = min_value
+        self.max_value = max_value
+        self.default_value = default_value
+
+    def format_color_hex(self, value):
+        if value is None:
+            value = self.default_value
+        value = int(value, 16)
+        return self.format_num(value)
+
+    def format_num(self, value):
+        if value is None:
+            value = self.default_value
+
+        if self.min_value is not None and value < self.min_value:
+          

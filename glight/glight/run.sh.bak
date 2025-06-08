@@ -1,0 +1,122 @@
+#!/bin/bash
+# Usage: ./run.sh <command> [argument]
+# Commands:
+# 0          = Pure white (all zones)
+# 1          = Set RGB zones (fixed colors)
+# ls         = List devices
+# sv         = Save state
+# ld         = Load state
+# br <color> = Breathe effect with color (color names or hex)
+# cy [color] = Cycle colors; 'all', color name or hex (e.g. cy all, cy red, cy ff0000)
+# p          = Cycle purple shades
+# h          = Help (show usage)
+
+source /home/ravivm/projects/glight/glight/venv/bin/activate
+GLIGHT_PATH="/home/ravivm/projects/glight/glight/glight.py"
+
+usage() {
+  clear
+  echo "Here are the available commands and usage:"
+  echo "Usage: $0 {0|1|ls|sv|ld|br <color>|cy [all|color]|p|h}"
+  echo ""
+  echo "Commands:"
+  echo "  0            : Pure white all zones"
+  echo "  1            : Set RGB zones fixed"
+  echo "  ls           : List devices"
+  echo "  sv           : Save state"
+  echo "  ld           : Load state"
+  echo "  br <color>   : Breathe effect with color (supports color names and 6-digit hex)"
+  echo "  cy [color]   : Cycle colors; 'all' or color name or 6-digit hex (e.g. cy all, cy red, cy ff0000)"
+  echo "  p            : Cycle purple shades"
+  echo "  h            : Show this help message"
+  echo ""
+  echo "Examples:"
+  echo "  g213 cy           # cycle all default colors"
+  echo "  g213 cy all       # same as above"
+  echo "  g213 cy red       # cycle red only"
+  echo "  g213 cy ff00ff    # cycle magenta via hex"
+  echo "  g213 br blue      # breathe blue"
+  echo "  g213 br ffff00    # breathe yellow via hex"
+  echo ""
+  echo "Supported color names:"
+  echo "  red, green, blue, cyan, magenta, yellow, white, orange, purple, pink"
+}
+
+
+
+color_to_hex() {
+  case "${1,,}" in
+    cyan) echo "00ffff" ;;
+    red) echo "ff0000" ;;
+    green) echo "00ff00" ;;
+    blue) echo "0000ff" ;;
+    yellow) echo "ffff00" ;;
+    purple) echo "800080" ;;
+    white) echo "ffffff" ;;
+    orange) echo "ffa500" ;;
+    pink) echo "ffc0cb" ;;
+    *) echo "" ;; 
+  esac
+}
+
+case "$1" in
+  0)
+    python3 "$GLIGHT_PATH" -d g213 -c ffffff ffffff ffffff ffffff ffffff
+    ;;
+  1)
+    python3 "$GLIGHT_PATH" -d g213 -c ff0000 00ff00 0000ff ffff00 ff00ff
+    ;;
+  ls)
+    python3 "$GLIGHT_PATH" -l
+    ;;
+  sv)
+    python3 "$GLIGHT_PATH" --save-state --state-file ~/g213.gstate
+    ;;
+  ld)
+    python3 "$GLIGHT_PATH" --load-state --state-file ~/g213.gstate
+    ;;
+  br)
+    if [ "$2" == "all" ]; then
+      echo "Breathe mode only supports one color. Use a color name or hex (e.g. br blue or br ff0000)."
+      exit 1
+    fi
+    COLOR_HEX=$(color_to_hex "$2")
+    if [ -z "$COLOR_HEX" ]; then
+      echo "Unknown or missing color for breathe effect."
+      usage
+      exit 1
+    fi
+    python3 "$GLIGHT_PATH" -d g213 -b "$COLOR_HEX" 5000 80
+    ;;
+
+  cy)
+    if [ -z "$2" ] || [ "$2" == "all" ]; then
+      python3 "$GLIGHT_PATH" -d g213 -x 6000 90
+    else
+      COLOR_HEX=$(color_to_hex "$2")
+      if [ -n "$COLOR_HEX" ]; then
+        python3 "$GLIGHT_PATH" -d g213 -x 6000 90 -c "$COLOR_HEX"
+      else
+        if [[ "$2" =~ ^[0-9a-fA-F]{6}$ ]]; then
+          python3 "$GLIGHT_PATH" -d g213 -x 6000 90 -c "$2"
+        else
+          echo "Invalid argument for cy: must be 'all', a known color name, or a 6-digit hex color."
+          usage
+          exit 1
+        fi
+      fi
+    fi
+    ;;
+  p)
+    python3 "$GLIGHT_PATH" -d g213 -x 7000 90 -c 800080 9400d3 da70d6
+    ;;
+  h|"")
+    usage
+    ;;
+  *)
+    echo "Invalid command: $1"
+    usage
+    exit 1
+    ;;
+esac
+

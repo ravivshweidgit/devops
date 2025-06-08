@@ -1,0 +1,166 @@
+#!/bin/bash
+
+# G213 RGB Control Script with Presets and Dynamic Options
+# Requires Python virtualenv at /home/ravivm/projects/glight/glight/venv
+
+# Global config
+GLIGHT_PATH="/home/ravivm/projects/glight/glight/glight.py"
+VENV_PATH="/home/ravivm/projects/glight/glight/venv"
+STATE_FILE="$HOME/g213.gstate"
+CONFIG_FILE="$HOME/.g213rc"
+
+# Load config if exists
+if [[ -f "$CONFIG_FILE" ]]; then
+  source "$CONFIG_FILE"
+fi
+
+# Default settings if not loaded
+: "${BRIGHTNESS:=100}"
+: "${SPEED:=6000}"
+
+# Supported named colors
+declare -A COLORS=(
+  [red]=ff0000 [green]=00ff00 [blue]=0000ff [cyan]=00ffff
+  [magenta]=ff00ff [yellow]=ffff00 [white]=ffffff [orange]=ff8000
+  [purple]=800080 [pink]=ffc0cb
+)
+
+# Activate virtualenv
+source "$VENV_PATH/bin/activate"
+
+# Show usage menu
+usage() {
+  clear
+  echo "Here are the available commands and usage:"
+  echo "Usage: $0 {0|1|ls|sv|ld|br <color>|cl <color>|cy [all|color ...]|p|spd <ms>|bri <val>|h}"
+  echo ""
+  echo "Commands:"
+  echo "  0            : Pure white all zones"
+  echo "  1            : Set RGB zones fixed"
+  echo "  ls           : List devices"
+  echo "  sv           : Save state"
+  echo "  ld           : Load state"
+  echo "  br <color>   : Breathe effect with color (color name or 6-digit hex)"
+  echo "  cl <color>   : Set static color across keyboard"
+  echo "  cy [colors]  : Cycle all default or specific color(s) (e.g. cy all, cy red, cy red blue)"
+  echo "  p            : Cycle purple shades"
+  echo "  spd <ms>     : Set speed for effects (1000-20000)"
+  echo "  bri <val>    : Set brightness (1-100)"
+  echo "  h            : Show this help message"
+  echo ""
+  echo "Examples:"
+  echo "  g213 cy           # cycle all default colors"
+  echo "  g213 cy red blue  # manually cycle red and blue"
+  echo "  g213 br cyan      # breathe cyan"
+  echo "  g213 cl pink      # static pink color"
+  echo "  g213 spd 4000     # set speed to 4000ms"
+  echo "  g213 bri 80       # set brightness to 80"
+  echo ""
+  echo "Supported colors:"
+  for key in "${!COLORS[@]}"; do echo -n "$key "; done; echo
+}
+
+# Resolve color input
+get_color_hex() {
+  local input="$1"
+  if [[ ${COLORS[$input]+_} ]]; then
+    echo "${COLORS[$input]}"
+  elif [[ "$input" =~ ^[0-9a-fA-F]{6}$ ]]; then
+    echo "$input"
+  else
+    echo ""  # invalid
+  fi
+}
+
+# Cycle manually through colors
+
+manual_cycle() {
+  shift
+  local color_list=()
+  for arg in "$@"; do
+    color_hex=$(get_color_hex "$arg")
+    if [[ -n "$color_hex" ]]; then
+      color_list+=("$color_hex")
+    else
+      echo "Invalid color: $arg"; usage; exit 1
+    fi
+  done
+
+  echo "Cycling through: ${color_list[*]} (Press Ctrl+C to stop)"
+  while true; do
+    for color in "${color_list[@]}"; do
+      python3 "$GLIGHT_PATH" -d g213 -c "$color"
+      sleep $(awk "BEGIN {print $SPEED/1000}")
+    done
+  done
+}
+
+# Main logic
+case "$1" in
+  0)
+    python3 "$GLIGHT_PATH" -d g213 -c ffffff
+    ;;
+  1)
+    python3 "$GLIGHT_PATH" -d g213 -c ff0000 00ff00 0000ff ffff00 ff00ff
+    ;;
+  ls)
+    python3 "$GLIGHT_PATH" -l
+    ;;
+  sv)
+    python3 "$GLIGHT_PATH" --save-state --state-file "$STATE_FILE"
+    ;;
+  ld)
+    python3 "$GLIGHT_PATH" --load-state --state-file "$STATE_FILE"
+    ;;
+  br)
+    color_hex=$(get_color_hex "$2")
+    if [[ -n "$color_hex" ]]; then
+      python3 "$GLIGHT_PATH" -d g213 -b "$color_hex" "$SPEED" "$BRIGHTNESS"
+    else
+      echo "Invalid color: $2"; usage
+    fi
+    ;;
+  cl)
+    color_hex=$(get_color_hex "$2")
+    if [[ -n "$color_hex" ]]; then
+      python3 "$GLIGHT_PATH" -d g213 -c "$color_hex"
+    else
+      echo "Invalid color: $2"; usage
+    fi
+    ;;
+  cy)
+    if [[ -z "$2" || "$2" == "all" ]]; then
+      python3 "$GLIGHT_PATH" -d g213 -x "$SPEED" "$BRIGHTNESS"
+    else
+      manual_cycle "$@"
+    fi
+    ;;
+  p)
+    python3 "$GLIGHT_PATH" -d g213 -c 800080 9932CC BA55D3 DDA0DD
+    ;;
+  spd)
+    if [[ "$2" =~ ^[0-9]+$ ]]; then
+      echo "SPEED=$2" > "$CONFIG_FILE"
+      echo "BRIGHTNESS=$BRIGHTNESS" >> "$CONFIG_FILE"
+      echo "Speed set to $2 ms"
+    else
+      echo "Invalid speed. Use numbers like 4000"; usage
+    fi
+    ;;
+  bri)
+    if [[ "$2" =~ ^[0-9]+$ ]]; then
+      echo "BRIGHTNESS=$2" > "$CONFIG_FILE"
+      echo "SPEED=$SPEED" >> "$CONFIG_FILE"
+      echo "Brightness set to $2"
+    else
+      echo "Invalid brightness. Use numbers like 80"; usage
+    fi
+    ;;
+  h)
+    usage
+    ;;
+  *)
+    usage
+    ;;
+esac
+

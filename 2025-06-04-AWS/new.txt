@@ -1,0 +1,73 @@
+Create proper md file to detail and explain the following:
+
+
+AWS Identity Services
+=====================
+
+
+Open iam dashboard (search iam)
+
+Create group
+============
+
+User groups -> createt group -> name group "admin" -> create group
+
+Create user
+==============
+Users -> "create user" -> check Provide user access to the AWS | I want to create an IAM user Next =>  user groups check admin -> create user
+
+We get those user details
+
+https://266833220666.signin.aws.amazon.com/console
+raviv-admin
+rEF3#7[[
+
+And we login with those details, after changing the passwprd, we are logged in woth the new IAM user raviv-admin.
+
+
+Add "IAMReadOnlyAccess" to admin group
+=======================================
+Go back to user groups and add to admin group "IAMReadOnlyAccess"
+
+
+Now the iam user can access the iam menue
+
+
+
+Create dev group
+=====================
+Add to dev group s3fullAccess
+Add iam user raviv-admin dev group.
+
+
+Now it has s3 create authprization
+
+
+
+
+
+
+Policies - create policy
+========================
+IAM
+Policies
+Create policy
+create policy -> service iam all read all list , resourcses all -> neaxt -> create policy -> "pol01"
+
+
+
+Add policy to admin group
+===============================
+IAM User groups admin -> Add prmisions -> Attache policies -> search "pol01"
+
+
+
+Attach roll to Ec2 macince
+============================
+Createing roll - iam readonly
+Create ec2 machine
+ec2 attchache roll iam radonly
+
+
+from ec2 machine cli :
+aws aim list-users

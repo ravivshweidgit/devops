@@ -1,0 +1,368 @@
+  value = self.min_value
+        elif self.max_value is not None and value > self.max_value:
+            value = self.max_value
+
+        return format(value, self.format)
+
+
+class GDeviceException(Exception):
+    """"""
+
+
+class GControllerException(Exception):
+    """"""
+
+
+class GDevice(object):
+    """Abstract G-Device"""
+
+    def __init__(self, backend_type=UsbBackend.TYPE_DEFAULT):
+        """"""
+        self.verbose = False;
+
+        self.backend_type = backend_type
+        self.backend = None # type: UsbBackend
+
+        self.device_name_short = ""
+        self.device_name = ""
+        self.device_state = GDeviceState()
+
+        self.id_vendor   = 0x0000  # The vendor id
+        self.id_product  = 0x0000  # The product id
+        self.w_index     = 0x0000  # Interface
+        self.ep_inter    = None    # Interrupt Endpoint (e.g. 0x82)
+
+        self.is_detached = False    # If kernel driver needs to be reattached
+
+        self.bm_request_type = 0x00   # Device specific
+        self.bm_request      = 0x00   # Device specific
+        self.w_value         = 0x0000 # Device specific
+
+        # capabilities
+        self.max_color_fields = 0
+        self.can_breathe = False
+        self.can_cycle   = False
+
+        # timings
+        self.timeout_after_prepare = 0
+        self.timeout_after_cmd = 0
+
+        # mutexes
+        self.wait_on_interrupt = False
+        self.wait_lock = None
+
+        # value specs
+        self.field_spec  = GValueSpec("02x", 0, self.max_color_fields, 0)
+        self.color_spec  = GValueSpec("06x", 0x000000, 0xffffff, 0xffffff)
+        self.speed_spec  = GValueSpec("04x", 0x03e8,   0x4e20,   0x2af8)
+        self.bright_spec = GValueSpec("02x", 0x01,     0x64,     0x64)
+
+        # binary commands in hex format
+        self.cmd_prepare = None
+        self.cmd_color   = "{field}{color}"
+        self.cmd_breathe = "{color}{speed}{bright}"
+        self.cmd_cycle   = "{speed}{bright}"
+
+        self.interrupt_length = 20
+
+    def _init_backend(self):
+        """"""
+        if self.backend is None:
+            if self.backend_type == UsbBackend.TYPE_PYUSB:
+                self.backend = UsbBackendPyUsb(self.id_vendor, self.id_product, self.w_index)
+            elif self.backend_type == UsbBackend.TYPE_USB1:
+                self.backend = UsbBackendUsb1(self.id_vendor, self.id_product, self.w_index)
+            else:
+                raise ValueError("Unknown Backend {}".format(self.backend_type))
+
+    def restore_state(self):
+        """"""
+        if self.exists():
+            if self.device_state is not None:
+                has_state = self.device_state.static or self.device_state.breathing or self.device_state.cycling
+
+                if has_state:
+                    if self.device_state.static and self.device_state.colors is not None:
+                        self.connect()
+                        try:
+                            if self.device_state.colors_uniform and len(self.device_state.colors) > 0:
+                                self.send_color_command(self.device_state.colors[0], 0)
+                            else:
+                                for i, color in enumerate(self.device_state.colors):
+                                    if color is not None:
+                                        self.send_color_command(color, i)
+                        finally:
+                            self.disconnect()
+
+                    elif self.device_state.breathing:
+                        self.connect()
+                        try:
+                            if self.device_state.colors is not None and len(self.device_state.colors) > 0:
+                                self.send_breathe_command(
+                                        self.device_state.colors[0],
+                                        self.device_state.speed,
+                                        self.device_state.brightness)
+                        finally:
+                            self.disconnect()
+
+                    elif self.device_state.cycling:
+                        self.connect()
+                        try:
+                            self.send_cycle_command(
+                                    self.device_state.speed,
+                                    self.device_state.brightness)
+                        finally:
+                            self.disconnect()
+
+    def exists(self):
+        """"""
+        self._init_backend()
+        return self.backend.get_usb_device() is not None
+
+    def connect(self):
+        """"""
+        self._init_backend()
+        self.backend.connect()
+
+    def disconnect(self):
+        """"""
+        self.backend.disconnect()
+
+    def on_interrupt(self, sender):
+        self.wait_on_interrupt = False
+        self._log("Received interrupt from sender: {}".format(sender))
+
+    def _can_do_interrup(self):
+        return self.backend.supports_interrupts and self.ep_inter is not None
+
+    def begin_interrupt(self):
+        if self._can_do_interrup():
+            self.backend.read_interrupt(endpoint=self.ep_inter, length=self.interrupt_length, callback=self.on_interrupt,
+                                        user_data=None, timeout=5000)
+            self.wait_on_interrupt = True
+
+    def end_interrupt(self): # ChangeMe: stupid busy wait ...
+        if self._can_do_interrup():
+            max_iter = 10000
+            while self.wait_on_interrupt:
+                max_iter = max_iter-1
+                self.backend.handle_events()
+                if max_iter == 0:
+                    self._log("Did not get a interrupt response in time")
+                    # yield # hack ... works but why?
+                    return
+
+    def send_data(self, data):
+        if self.cmd_prepare is not None:
+            self.begin_interrupt()
+            self.backend.send_data(self.bm_request_type, self.bm_request, self.w_value, self.cmd_prepare)
+            sleep(self.timeout_after_prepare)
+            self.end_interrupt()
+
+        self.begin_interrupt()
+        self.backend.send_data(self.bm_request_type, self.bm_request, self.w_value, data)
+        sleep(self.timeout_after_cmd)
+        self.end_interrupt()
+
+    def send_colors_command(self, colors):
+        """"""
+        if len(colors) <= 1:
+            if len(colors) == 1:
+                color = colors[0]
+            else:
+                color = "FFFFFF"
+
+            self.send_color_command(color, 0)
+
+        elif len(colors) > 1:
+            for i in range(0, min(len(colors), self.max_color_fields)):
+                self.send_color_command(colors[i], i + 1)
+
+    def send_color_command(self, color, field=0):
+        GDevice.assert_valid_color(color)
+        self._log("Set color '{}' at slot {}".format(color, field))
+        self.send_data(self.cmd_color.format(
+                            field=self.field_spec.format_num(field),
+                            color=self.color_spec.format_color_hex(color)))
+
+        self.device_state.reset()
+        self.device_state.static = True
+        self.device_state.colors_uniform = (field == 0)
+        self.device_state.set_color_at(color, field)
+
+    def send_breathe_command(self, color, speed, brightness=None):
+        if not self.can_breathe:
+            raise GDeviceException("Device does not support the breathe effect")
+
+        if brightness is None:
+            brightness = self.bright_spec.max_value
+        GDevice.assert_valid_color(color)
+
+        self.send_data(self.cmd_breathe.format(
+                            color=self.color_spec.format_color_hex(color),
+                            speed=self.speed_spec.format_num(speed),
+                            bright=self.bright_spec.format_num(brightness)))
+
+        self.device_state.reset()
+        self.device_state.breathing = True
+        self.device_state.speed = speed
+        self.device_state.brightness = brightness
+        self.device_state.set_color_at(color)
+
+    def send_cycle_command(self, speed, brightness=None):
+        if not self.can_cycle:
+            raise GDeviceException("Device does not support the cycle effect")
+
+        if brightness is None:
+            brightness = self.bright_spec.max_value
+
+        self.send_data(self.cmd_cycle.format(
+                                speed=self.speed_spec.format_num(speed),
+                                bright=self.bright_spec.format_num(brightness)))
+
+        self.device_state.reset()
+        self.device_state.cycling = True
+        self.device_state.speed = speed
+        self.device_state.brightness = brightness
+
+    def _log(self, msg):
+        if self.verbose:
+            print(msg)
+
+    @staticmethod
+    def assert_valid_color(color):
+        if not GDevice.is_valid_color(color):
+            raise ValueError("Color '{}' is not a valid color string in hex representation (e.g. 'F0D3AA')".format(color))
+
+    @staticmethod
+    def is_valid_color(data):
+        """"""
+        if len(data) != 6:
+            return False
+
+        try:
+            binascii.unhexlify(data)
+        except:
+            return False
+
+        return True
+
+
+class G203(GDevice):
+    """Logitech G203 Mouse Support"""
+
+    def __init__(self, backend_type=UsbBackend.TYPE_DEFAULT):
+        """"""
+        super(G203, self).__init__(backend_type)
+
+        self.device_name_short = "g203"
+        self.device_name = "G203 Mouse"
+
+        self.id_vendor   = 0x046d  # The id of the Logitech company
+        self.id_product  = 0xc084  # The id of the G203
+        self.w_index     = 0x0001  # Interface 1
+        self.ep_inter    = 0x82    # Interrupt Endpoint
+
+        self.is_detached = False    # If kernel driver needs to be reattached
+
+        self.bm_request_type = usb1.ENDPOINT_OUT | usb1.RECIPIENT_INTERFACE | usb1.TYPE_CLASS # 0x21
+        self.bm_request      = UsbConstants.HID_REQ_SET_REPORT # 0x09
+        self.w_value         = 0x0211 # ???
+
+        # capabilities
+        self.max_color_fields = 0
+        self.can_breathe = True
+        self.can_cycle   = True
+
+        # timings
+        self.timeout_after_prepare = 0.01
+        self.timeout_after_cmd = 0.01
+
+        # value specs
+        self.field_spec  = GValueSpec("02x", 0, self.max_color_fields, 0)
+        self.color_spec  = GValueSpec("06x", 0x000000, 0xffffff, 0xffffff)
+        self.speed_spec  = GValueSpec("04x", 0x03e8,   0x4e20,   0x2af8)
+        self.bright_spec = GValueSpec("02x", 0x01,     0x64,     0x64)
+
+        # binary commands in hex format
+        self.cmd_prepare = "10ff0e0d000000"
+        #                   10ff0e0d000000
+        #                   10ff0f4d000000 # another prepare command?
+        self.cmd_color   = "11ff0e3d{field}01{color}0200000000000000000000"
+        #                   11ff0e3d00018000ff0200000000000000000000 # similar to G213
+        #                           []  RRGGBB
+        #                           field
+        self.cmd_breathe = "11ff0e3d0003{color}{speed}00{bright}00000000000000"
+        #                   11ff0e3d00038000ff2af8000100000000000000 # darkest
+        #                   11ff0e3d00038000ff2af8006400000000000000 # brightest
+        #                               RRGGBB[..]  []
+        #                                     speed brightness
+        self.cmd_cycle   = "11ff0e3d00020000000000{speed}{bright}000000000000"
+        #                   11ff0e3d00020000000000000fa064000000000000
+        #                   11ff0e3d000200000000002af864000000000000
+        #                                         [..][]
+        #                                         |   brightness
+        #                                         speed
+        #                   11ff0e3d000200000000002af801000000000000 # darkest
+        #                   11ff0e3d0002000000000003e864000000000000 # fastest
+        #                   11ff0e3d000200000000004e2064000000000000 # slowest
+
+
+class G213(GDevice):
+    """Logitech G213 Keyboard Support"""
+
+    def __init__(self, backend_type=UsbBackend.TYPE_DEFAULT):
+        """"""
+        super(G213, self).__init__(backend_type)
+
+        self.device_name_short = "g213"
+        self.device_name = "G213 Keyboard"
+
+        self.id_vendor   = 0x046d  # The id of the Logitech company
+        self.id_product  = 0xc336  # The id of the G213
+        self.w_index     = 0x0001  # Interface 1
+        self.ep_inter    = 0x82    # Interrupt Endpoint
+
+        self.is_detached = False    # If kernel driver needs to be reattached
+
+        self.bm_request_type = usb1.ENDPOINT_OUT | usb1.RECIPIENT_INTERFACE | usb1.TYPE_CLASS # 0x21
+        self.bm_request      = UsbConstants.HID_REQ_SET_REPORT # 0x09
+        self.w_value         = 0x0211 # ???
+
+        # capabilities
+        self.max_color_fields = 6
+        self.can_breathe = True
+        self.can_cycle   = True
+
+        # timings
+        self.timeout_after_prepare = 0.01
+        self.timeout_after_cmd = 0.01
+
+        # value specs
+        self.field_spec  = GValueSpec("02x", 0, self.max_color_fields, 0)
+        self.color_spec  = GValueSpec("06x", 0x000000, 0xffffff, 0xffffff)
+        self.speed_spec  = GValueSpec("04x", 0x03e8,   0x4e20,   0x2af8)
+        self.bright_spec = GValueSpec("02x", 0x01,     0x64,     0x64)
+
+        # binary commands in hex format
+        self.cmd_prepare = "11ff0c0a00000000000000000000000000000000"
+        self.cmd_color   = "11ff0c3a{field}01{color}0200000000000000000000"
+        #                   11ff0e3a00018000ff0200000000000000000000 # similar to G203
+        #                           []  RRGGBB
+        #                           field
+        self.cmd_breathe = "11ff0c3a0002{color}{speed}00{bright}00000000000000"
+        #                   11ff0e3d00038000ff2af8006400000000000000 # brightest
+        #                               RRGGBB[..]  []
+        #                                     speed brightness
+        self.cmd_cycle   = "11ff0c3a0003ffffff0000{speed}{bright}000000000000"
+        #                   11ff0e3d000200000000002af864000000000000
+        #                                         [..][]
+        #                                         |   brightness
+        #                                         speed
+
+# GServices and GClients ------------------------------------------------------
+
+class GlightCommon(object):
+
+    def get_bus(self):
+  

@@ -1,0 +1,81 @@
+Please create proper md file for this :
+
+AWS getting started,
+Create EC2 work flow
+===================================
+
+
+Login to AWS account
+
+https://eu-north-1.console.aws.amazon.com/console/home?region=eu-north-1
+
+in search bar write ec2 + enter
+This will get you to the EC2 over view:
+https://eu-north-1.console.aws.amazon.com/ec2/home?region=eu-north-1#Overview:
+
+
+From left menue choose  Instances -> 
+https://eu-north-1.console.aws.amazon.com/ec2/home?region=eu-north-1#Instances:
+
+From left top coner click Launch instances ->
+https://eu-north-1.console.aws.amazon.com/ec2/home?region=eu-north-1#LaunchInstances:
+
+
+Name and tags
+============
+ : Wen1
+
+From Application and OS Images (Amazon Machine Image) , we will stay with the default Linux
+
+
+Instance type
+================
+t2 micro or t3 micro (as long as it is micro)
+
+Key pair : click the create new key key01,  pair RSA , .pem
+
+
+Network settings
+===============
+In Allow SSH traffic from change form anywhere to My IP. this will be the security group.
+
+
+Configure storage
+======================
+no changes
+
+Advanced details
+==================
+no changes
+
+On the right orange button click Launch instance,
+Wait minute or 2 ....  AWS is launching your new EC2 instance
+
+
+After instance is created check the line the click connect, goto SSH client tab.
+
+Goto your linux download directory where your key key01.pem is
+chmod 400 "key02.pem"
+ssh -i "key01.pem" ec2-user@ec2-16-171-112-254.eu-north-1.compute.amazonaws.com
+   ,     #_
+   ~\_  ####_        Amazon Linux 2023
+  ~~  \_#####\
+  ~~     \###|
+  ~~       \#/ ___   https://aws.amazon.com/linux/amazon-linux-2023
+   ~~       V~' '->
+    ~~~         /
+      ~~._.   _/
+         _/ _/
+       _/m/'
+Last login: Wed May 28 17:44:37 2025 from 79.177.133.211
+
+Lets go back to the Isstances
+https://eu-north-1.console.aws.amazon.com/ec2/home?region=eu-north-1#Instances:
+Stop the instance and terminate it
+
+Goto volumes : Elastic Block Store -> Volumes
+https://eu-north-1.console.aws.amazon.com/ec2/home?region=eu-north-1#Volumes:
+and check no redundent volume exist (Not to be charged for nothing)
+
+
+
