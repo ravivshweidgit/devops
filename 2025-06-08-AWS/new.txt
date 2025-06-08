@@ -1,1 +1,159 @@
+Please create detailed md document to explain the below :
+
+
+VPC
+=======================
+
+
+
+search "vpc" got vpc
+
+https://eu-north-1.console.aws.amazon.com/vpcconsole/home?region=eu-north-1#Home:
+
+
+VPC dashboard -> your vpc -> 
+
+
+create vpc
+VPC settings : vpc and more 
+Name tag auto-generation : lab
+PC endpoints : none
+
+
+
+Create EC2 bastion
+ec2 -> instances -> Launch -> 
+
+Name and tags : bastion
+Network settings
+vpc : lab
+subne : public 1
+
+
+Create EC2 NAT
+ec2 -> instances -> launch -> 
+
+Name and tags : nat
+Application and OS Images (Amazon Machine Image)  : amzn-ami-vpc-nat  -> Community AMIs  pick first -> launch
+
+
+Netwrk settings 
+VPC : lab-vpc
+Subnet : public1
+
+
+Auto-assign public IP : enable
+
+
+
+Launch ..
+
+
+
+create security group for the  nat
+create Inbound rule :
+Type : All traffic  
+Source : 10.0.0.0/16 
+
+Goto NAT instance -> Action -> Networking -> Change Source / destination check -> Check stop -> save (because this is NAT i dont want to check this)
+Stop and start NAT instance
+
+
+This will allow machine inside private to comunicate to the internet:
+VPC -> rout tables -> check lab-rtb-private1-eu-north-1a -> Routs -> Edit routs -> 
+Add rout -> 
+Destination : 0.0.0.0/0
+Target : Instance + i-0a5422b20ad5df8fb(nat) -> save changes
+
+
+
+another ec2 machine in the private
+Ec2 launche instance
+name : private
+Network settings : lab
+Subnet : private1
+Launce instance
+
+
+Ec2 : instances : bastion : connect :
+
+Instance ID
+
+i-0ec2f559a130315df (bastion)
+Open an SSH client.
+
+Locate your private key file. The key used to launch this instance is key01.pem
+
+Run this command, if necessary, to ensure your key is not publicly viewable.
+chmod 400 "key01.pem"
+
+Connect to your instance using its Private IP:
+10.0.4.212
+
+Example:
+
+ssh -i "key01.pem" ec2-user@10.0.4.212
+
+now we need to copy the private key to the bastion
+Now if we connect to the private it will connect us to the private machine through the bastion.
+
+
+Now another method to connect to private machine
+IAM -> roles > create role > permision policies search "ssm" : AmazonSSMManagedInstanceCore > role "basic-ssm" > create role
+
+Ec2 > instances > private > securioty > modify iam role > basic-ssm.
+Stop/start pricate ec2.
+
+private > connect > session manager > connect : connect throuh the web browser .
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

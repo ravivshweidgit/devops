@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete AWS VPC Lab Setup Guide</title>
+    <style>
+        @media print {
+            @page {
+                margin: 0.75in;
+                size: A4;
+            }
+            body {
+                font-size: 11pt;
+                line-height: 1.4;
+            }
+            h1 { page-break-before: always; }
+            h1:first-child { page-break-before: avoid; }
+            .page-break { page-break-before: always; }
+            pre, code { font-size: 9pt; }
+            table { font-size: 10pt; }
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+            margin-top: 25px;
+        }
+        
+        h3 {
+            color: #7f8c8d;
+            margin-top: 20px;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+        }
+        
+        code {
+            background: #f1f2f6;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .architecture {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: monospace;
+            text-align: center;
+        }
+        
+        .note {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .step {
+            background: #f8f9fa;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        ul, ol {
+            padding-left: 25px;
+        }
+        
+        li {
+            margin: 5px 0;
+        }
+        
+        .toc {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        .toc li {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+        
+        .toc a {
+            text-decoration: none;
+            color: #3498db;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Complete AWS VPC Lab Setup Guide</h1>
+
+<div class="toc">
+    <h2>Table of Contents</h2>
+    <ul>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#architecture">Architecture Components</a></li>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#phase1">Phase 1: VPC Infrastructure Setup</a></li>
+        <li><a href="#phase2">Phase 2: Bastion Host Configuration</a></li>
+        <li><a href="#phase3">Phase 3: NAT Instance Setup</a></li>
+        <li><a href="#phase4">Phase 4: Configure Private Subnet Internet Access</a></li>
+        <li><a href="#phase5">Phase 5: Create Private Instance</a></li>
+        <li><a href="#phase6">Phase 6: SSH Access Through Bastion Host</a></li>
+        <li><a href="#phase7">Phase 7: Alternative Access Method - AWS Systems Manager</a></li>
+        <li><a href="#comparison">Connection Methods Comparison</a></li>
+        <li><a href="#security">Security Considerations</a></li>
+        <li><a href="#troubleshooting">Troubleshooting Common Issues</a></li>
+    </ul>
+</div>
+
+<h2 id="overview">Overview</h2>
+
+<p>This comprehensive guide demonstrates how to create a complete AWS VPC infrastructure with multiple access methods to private instances. The lab covers VPC creation, NAT instance configuration, bastion host setup, and both SSH and AWS Systems Manager (SSM) Session Manager connectivity options.</p>
+
+<h2 id="architecture">Architecture Components</h2>
+
+<ul>
+    <li><strong>VPC (Virtual Private Cloud)</strong>: Isolated network environment</li>
+    <li><strong>Public Subnet</strong>: Internet-accessible subnet for bastion and NAT instances</li>
+    <li><strong>Private Subnet</strong>: Secure subnet for backend instances</li>
+    <li><strong>Bastion Host</strong>: SSH jump server for secure access</li>
+    <li><strong>NAT Instance</strong>: Provides outbound internet access for private instances</li>
+    <li><strong>Private Instance</strong>: Backend server with no direct internet access</li>
+    <li><strong>IAM Role</strong>: Enables SSM Session Manager connectivity</li>
+</ul>
+
+<h3>Network Architecture Diagram</h3>
+
+<div class="architecture">
+Internet Gateway<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;Public Subnet<br>
+&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+Bastion&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NAT Instance<br>
+&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;Route Table (Private)<br>
+&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;+---- Private Subnet ----+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Private Instance
+</div>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<ul>
+    <li>AWS account with appropriate permissions</li>
+    <li>Key pair (key01.pem) for SSH access</li>
+    <li>Basic understanding of AWS networking</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h1 id="phase1">Phase 1: VPC Infrastructure Setup</h1>
+
+<h3>1.1 Access VPC Console</h3>
+<ol>
+    <li>Navigate to AWS Console</li>
+    <li>Search for "vpc" in the services search bar</li>
+    <li>Select <strong>VPC</strong> service</li>
+    <li>Access URL: <code>https://eu-north-1.console.aws.amazon.com/vpcconsole/home?region=eu-north-1#Home:</code></li>
+</ol>
+
+<h3>1.2 Create VPC with Complete Infrastructure</h3>
+<ol>
+    <li>From <strong>VPC Dashboard</strong>, navigate to <strong>Your VPCs</strong></li>
+    <li>Click <strong>Create VPC</strong></li>
+    <li>Configure VPC settings:
+        <ul>
+            <li><strong>VPC Settings</strong>: Select <strong>VPC and more</strong></li>
+            <li><strong>Name tag auto-generation</strong>: Enter <code>lab</code></li>
+            <li><strong>VPC endpoints</strong>: Select <strong>None</strong></li>
+        </ul>
+    </li>
+    <li>Click <strong>Create VPC</strong></li>
+</ol>
+
+<div class="note">
+    <strong>What AWS Creates Automatically:</strong>
+    <ul>
+        <li>VPC with CIDR block (typically 10.0.0.0/16)</li>
+        <li>Internet Gateway (attached to VPC)</li>
+        <li>Public subnet(s)</li>
+        <li>Private subnet(s)</li>
+        <li>Route tables for public and private subnets</li>
+        <li>Default security group</li>
+    </ul>
+</div>
+
+<h1 id="phase2">Phase 2: Bastion Host Configuration</h1>
+
+<h3>2.1 Launch Bastion Instance</h3>
+<ol>
+    <li>Navigate to <strong>EC2 Console</strong></li>
+    <li>Go to <strong>Instances</strong> → <strong>Launch Instance</strong></li>
+    <li>Configure instance settings:
+        <ul>
+            <li><strong>Name and tags</strong>: <code>bastion</code></li>
+            <li><strong>AMI</strong>: Amazon Linux 2 (default)</li>
+            <li><strong>Instance Type</strong>: t2.micro</li>
+        </ul>
+    </li>
+</ol>
+
+<h3>2.2 Network Configuration for Bastion</h3>
+<ol>
+    <li>In <strong>Network settings</strong>:
+        <ul>
+            <li><strong>VPC</strong>: Select <code>lab</code></li>
+            <li><strong>Subnet</strong>: Select <code>public-1</code></li>
+            <li><strong>Auto-assign public IP</strong>: Enable (default)</li>
+        </ul>
+    </li>
+    <li><strong>Key pair</strong>: Select <code>key01</code> (or your existing key pair)</li>
+    <li>Launch the instance</li>
+</ol>
+
+<h1 id="phase3">Phase 3: NAT Instance Setup</h1>
+
+<h3>3.1 Launch NAT Instance</h3>
+<ol>
+    <li>In <strong>EC2 Console</strong>, go to <strong>Instances</strong> → <strong>Launch Instance</strong></li>
+    <li>Configure basic settings:
+        <ul>
+            <li><strong>Name and tags</strong>: <code>nat</code></li>
+        </ul>
+    </li>
+</ol>
+
+<h3>3.2 Select NAT-Specific AMI</h3>
+<ol>
+    <li>In <strong>Application and OS Images (Amazon Machine Image)</strong>:
+        <ul>
+            <li>Search for <code>amzn-ami-vpc-nat</code></li>
+            <li>Navigate to <strong>Community AMIs</strong> tab</li>
+            <li>Select the first available NAT AMI</li>
+            <li>Click <strong>Select</strong></li>
+        </ul>
+    </li>
+</ol>
+
+<h3>3.3 Network Configuration for NAT</h3>
+<ol>
+    <li>In <strong>Network settings</strong>:
+        <ul>
+            <li><strong>VPC</strong>: Select <code>lab-vpc</code></li>
+            <li><strong>Subnet</strong>: Select <code>public1</code></li>
+            <li><strong>Auto-assign public IP</strong>: <strong>Enable</strong></li>
+        </ul>
+    </li>
+    <li><strong>Key pair</strong>: Select <code>key01</code></li>
+    <li>Click <strong>Launch Instance</strong></li>
+</ol>
+
+<h3>3.4 Create Security Group for NAT Instance</h3>
+<ol>
+    <li>Navigate to <strong>EC2 Console</strong> → <strong>Security Groups</strong></li>
+    <li>Click <strong>Create security group</strong></li>
+    <li>Configure security group:
+        <ul>
+            <li><strong>Name</strong>: <code>nat-security-group</code></li>
+            <li><strong>Description</strong>: Allow traffic from VPC for NAT functionality</li>
+            <li><strong>VPC</strong>: Select <code>lab-vpc</code></li>
+        </ul>
+    </li>
+</ol>
+
+<h3>3.5 Configure Inbound Rules for NAT</h3>
+<ol>
+    <li>In <strong>Inbound rules</strong> section, click <strong>Add rule</strong></li>
+    <li>Configure rule:
+        <ul>
+            <li><strong>Type</strong>: All traffic</li>
+            <li><strong>Protocol</strong>: All</li>
+            <li><strong>Port range</strong>: All</li>
+            <li><strong>Source</strong>: <code>10.0.0.0/16</code> (VPC CIDR block)</li>
+        </ul>
+    </li>
+    <li>Click <strong>Create security group</strong></li>
+</ol>
+
+<h3>3.6 Apply Security Group to NAT Instance</h3>
+<ol>
+    <li>Select the NAT instance</li>
+    <li>Go to <strong>Actions</strong> → <strong>Security</strong> → <strong>Change security groups</strong></li>
+    <li>Add the <code>nat-security-group</code></li>
+</ol>
+
+<h3>3.7 Configure NAT Instance for Routing</h3>
+<ol>
+    <li>Select the NAT instance</li>
+    <li>Navigate to <strong>Actions</strong> → <strong>Networking</strong> → <strong>Change Source/Destination Check</strong></li>
+    <li><strong>Uncheck</strong> the "Enable" checkbox (disable source/destination check)</li>
+    <li>Click <strong>Save</strong></li>
+</ol>
+
+<div class="note">
+    <strong>Why disable source/destination check:</strong>
+    <ul>
+        <li>NAT instances need to forward traffic between different network segments</li>
+        <li>EC2 instances normally drop traffic not destined for their own IP</li>
+        <li>Disabling this allows the instance to act as a router/NAT device</li>
+    </ul>
+</div>
+
+<h3>3.8 Restart NAT Instance</h3>
+<ol>
+    <li>Select the NAT instance</li>
+    <li><strong>Instance State</strong> → <strong>Stop instance</strong></li>
+    <li>Wait for complete shutdown</li>
+    <li><strong>Instance State</strong> → <strong>Start instance</strong></li>
+</ol>
+
+<div class="page-break"></div>
+
+<h1 id="phase4">Phase 4: Configure Private Subnet Internet Access</h1>
+
+<h3>4.1 Update Private Route Table</h3>
+<ol>
+    <li>Navigate to <strong>VPC Console</strong> → <strong>Route Tables</strong></li>
+    <li>Find and select the private route table: <code>lab-rtb-private1-eu-north-1a</code></li>
+    <li>Click <strong>Routes</strong> tab</li>
+    <li>Click <strong>Edit routes</strong></li>
+</ol>
+
+<h3>4.2 Add NAT Route</h3>
+<ol>
+    <li>Click <strong>Add route</strong></li>
+    <li>Configure route:
+        <ul>
+            <li><strong>Destination</strong>: <code>0.0.0.0/0</code> (all internet traffic)</li>
+            <li><strong>Target</strong>: Select <strong>Instance</strong>, then choose the NAT instance (<code>i-0a5422b20ad5df8fb</code>)</li>
+        </ul>
+    </li>
+    <li>Click <strong>Save changes</strong></li>
+</ol>
+
+<div class="note">
+    <strong>What this accomplishes:</strong>
+    <ul>
+        <li>Routes all internet-bound traffic from private subnet through NAT instance</li>
+        <li>Enables private instances to access internet for updates and downloads</li>
+        <li>Maintains security by preventing inbound internet connections</li>
+    </ul>
+</div>
+
+<h1 id="phase5">Phase 5: Create Private Instance</h1>
+
+<h3>5.1 Launch Private Instance</h3>
+<ol>
+    <li>In <strong>EC2 Console</strong>, go to <strong>Instances</strong> → <strong>Launch Instance</strong></li>
+    <li>Configure settings:
+        <ul>
+            <li><strong>Name</strong>: <code>private</code></li>
+            <li><strong>AMI</strong>: Amazon Linux 2 (default)</li>
+            <li><strong>Instance Type</strong>: t2.micro</li>
+        </ul>
+    </li>
+</ol>
+
+<h3>5.2 Network Configuration for Private Instance</h3>
+<ol>
+    <li>In <strong>Network settings</strong>:
+        <ul>
+            <li><strong>VPC</strong>: Select <code>lab</code></li>
+            <li><strong>Subnet</strong>: Select <code>private1</code></li>
+            <li><strong>Auto-assign public IP</strong>: Disable (default for private subnet)</li>
+        </ul>
+    </li>
+    <li><strong>Key pair</strong>: Select <code>key01</code></li>
+    <li>Launch the instance</li>
+</ol>
+
+<h1 id="phase6">Phase 6: SSH Access Through Bastion Host</h1>
+
+<h3>6.1 Connect to Bastion Host</h3>
+<ol>
+    <li>In <strong>EC2 Console</strong>, select the bastion instance</li>
+    <li>Click <strong>Connect</strong></li>
+    <li>Note the connection details:
+        <ul>
+            <li><strong>Instance ID</strong>: <code>i-0ec2f559a130315df</code> (bastion)</li>
+            <li><strong>Private IP</strong>: <code>10.0.4.212</code></li>
+        </ul>
+    </li>
+</ol>
+
+<h3>6.2 SSH Connection Commands</h3>
+
+<div class="step">
+    <strong>1. Ensure proper key permissions:</strong>
+    <pre><code>chmod 400 "key01.pem"</code></pre>
+</div>
+
+<div class="step">
+    <strong>2. Connect to bastion host:</strong>
+    <pre><code>ssh -i "key01.pem" ec2-user@10.0.4.212</code></pre>
+</div>
+
+<h3>6.3 Copy Private Key to Bastion Host</h3>
+<p>To access the private instance through the bastion, you need to copy the private key:</p>
+
+<div class="step">
+    <strong>Method 1: Using SCP</strong>
+    <pre><code>scp -i "key01.pem" key01.pem ec2-user@10.0.4.212:~/</code></pre>
+</div>
+
+<div class="step">
+    <strong>Method 2: Copy-paste key content</strong>
+    <ol>
+        <li>Open key01.pem in a text editor</li>
+        <li>Copy the entire content</li>
+        <li>SSH into bastion host</li>
+        <li>Create the key file: <code>nano ~/key01.pem</code></li>
+        <li>Paste the content and save</li>
+        <li>Set permissions: <code>chmod 400 ~/key01.pem</code></li>
+    </ol>
+</div>
+
+<h3>6.4 Connect to Private Instance via Bastion</h3>
+<div class="step">
+    <strong>From within the bastion host, connect to private instance:</strong>
+    <pre><code>ssh -i "key01.pem" ec2-user@[PRIVATE_INSTANCE_IP]</code></pre>
+</div>
+
+<div class="page-break"></div>
+
+<h1 id="phase7">Phase 7: Alternative Access Method - AWS Systems Manager</h1>
+
+<h3>7.1 Create IAM Role for SSM</h3>
+<ol>
+    <li>Navigate to <strong>IAM Console</strong> → <strong>Roles</strong></li>
+    <li>Click <strong>Create role</strong></li>
+    <li>Configure role:
+        <ul>
+            <li><strong>Trusted entity</strong>: AWS service</li>
+            <li><strong>Service</strong>: EC2</li>
+            <li>Click <strong>Next</strong></li>
+        </ul>
+    </li>
+</ol>
+
+<h3>7.2 Attach SSM Policy</h3>
+<ol>
+    <li>In <strong>Permission policies</strong>, search for "ssm"</li>
+    <li>Select <strong>AmazonSSMManagedInstanceCore</strong></li>
+    <li>Click <strong>Next</strong></li>
+    <li><strong>Role name</strong>: <code>basic-ssm</code></li>
+    <li>Click <strong>Create role</strong></li>
+</ol>
+
+<h3>7.3 Attach IAM Role to Private Instance</h3>
+<ol>
+    <li>Navigate to <strong>EC2 Console</strong> → <strong>Instances</strong></li>
+    <li>Select the <code>private</code> instance</li>
+    <li>Go to <strong>Security</strong> tab</li>
+    <li>Click <strong>Modify IAM role</strong></li>
+    <li>Select <strong>basic-ssm</strong> role</li>
+    <li>Click <strong>Update IAM role</strong></li>
+</ol>
+
+<h3>7.4 Restart Private Instance</h3>
+<ol>
+    <li><strong>Instance State</strong> → <strong>Stop instance</strong></li>
+    <li>Wait for complete shutdown</li>
+    <li><strong>Instance State</strong> → <strong>Start instance</strong></li>
+</ol>
+
+<div class="warning">
+    <strong>Why restart is necessary:</strong>
+    <ul>
+        <li>IAM role attachment requires instance restart to take effect</li>
+        <li>SSM agent needs to initialize with new permissions</li>
+    </ul>
+</div>
+
+<h3>7.5 Connect via Session Manager</h3>
+<ol>
+    <li>Select the <code>private</code> instance</li>
+    <li>Click <strong>Connect</strong></li>
+    <li>Choose <strong>Session Manager</strong> tab</li>
+    <li>Click <strong>Connect</strong></li>
+    <li>Access the instance through web browser console</li>
+</ol>
+
+<h1 id="comparison">Connection Methods Comparison</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>Method</th>
+            <th>Pros</th>
+            <th>Cons</th>
+            <th>Use Case</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>SSH via Bastion</strong></td>
+            <td>Full SSH functionality, familiar interface</td>
+            <td>Requires key management, bastion maintenance</td>
+            <td>Development, file transfers</td>
+        </tr>
+        <tr>
+            <td><strong>Session Manager</strong></td>
+            <td>No keys needed, audit logging, web-based</td>
+            <td>Limited functionality, requires IAM setup</td>
+            <td>Quick admin tasks, secure access</td>
+        </tr>
+    </tbody>
+</table>
+
+<h1 id="security">Security Considerations</h1>
+
+<h3>Network Security</h3>
+<ul>
+    <li><strong>Bastion Host</strong>: Limit SSH access to specific IP ranges</li>
+    <li><strong>Private Instances</strong>: No direct internet access</li>
+    <li><strong>Security Groups</strong>: Implement least privilege access</li>
+    <li><strong>NACLs</strong>: Additional subnet-level security (optional)</li>
+</ul>
+
+<h3>Access Control</h3>
+<ul>
+    <li><strong>SSH Keys</strong>: Rotate regularly, use different keys per environment</li>
+    <li><strong>IAM Roles</strong>: Minimal required permissions only</li>
+    <li><strong>Session Manager</strong>: Centralized logging and session recording</li>
+</ul>
+
+<h3>Best Practices</h3>
+<ol>
+    <li><strong>Monitoring</strong>: Enable VPC Flow Logs</li>
+    <li><strong>Logging</strong>: CloudTrail for API calls, Session Manager for shell sessions</li>
+    <li><strong>Updates</strong>: Regular security patches via NAT internet access</li>
+    <li><strong>Backup</strong>: Regular snapshots of critical instances</li>
+</ol>
+
+<h1 id="troubleshooting">Troubleshooting Common Issues</h1>
+
+<h3>Connectivity Problems</h3>
+
+<div class="step">
+    <strong>Private instance can't reach internet:</strong>
+    <ul>
+        <li>Verify NAT instance is running</li>
+        <li>Check private route table has 0.0.0.0/0 → NAT instance route</li>
+        <li>Ensure NAT security group allows VPC traffic</li>
+        <li>Confirm source/destination check is disabled on NAT</li>
+    </ul>
+</div>
+
+<div class="step">
+    <strong>Can't SSH to private instance:</strong>
+    <ul>
+        <li>Verify bastion host connectivity</li>
+        <li>Check private key is copied to bastion</li>
+        <li>Confirm security groups allow SSH (port 22)</li>
+    </ul>
+</div>
+
+<h3>Testing Connectivity</h3>
+
+<div class="step">
+    <strong>Test internet connectivity from private instance:</strong>
+    <pre><code>ping 8.8.8.8
+curl -I google.com</code></pre>
+</div>
+
+<div class="step">
+    <strong>Verification steps:</strong>
+    <ul>
+        <li>Check route tables in VPC console</li>
+        <li>Verify security group rules allow required traffic</li>
+        <li>Test NAT instance connectivity from AWS console</li>
+    </ul>
+</div>
+
+<div class="note">
+    <p><strong>Cost Optimization Tips:</strong></p>
+    <ul>
+        <li>Use NAT Gateway instead of NAT instance for production environments</li>
+        <li>Consider using VPC endpoints for AWS services to avoid internet routing</li>
+        <li>Monitor data transfer costs through NAT instances</li>
+    </ul>
+</div>
+
+<hr style="margin: 40px 0; border: 2px solid #ecf0f1;">
+
+<p style="text-align: center; color: #7f8c8d; font-style: italic;">
+    This configuration demonstrates AWS networking best practices and provides foundation for more complex architectures.
+</p>
+
+</body>
+</html>
