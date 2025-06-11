@@ -1,0 +1,117 @@
+
+
+AWS storage resources
+
+EBS S3 EFS
+=============
+
+
+S3 class
+==========
+goto search bar "s3" -> create bucket
+
+
+
+Bucket name (global worl unique) raviv-shweid-s3-demo
+
+create bucket
+
+https://unsplash.com/photos/gray-wooden-house-178j8tJrNlc -> download free.
+upload the jpj to s3
+
+go back to bucket
+https://eu-north-1.console.aws.amazon.com/s3/buckets/raviv-shweid-s3-demo?region=eu-north-1&bucketType=general&tab=objects
+
+check the line , copy the file url, paste to browser : AccessDenied
+
+No public access yet,
+In bucket -> actions -> 
+share with persigned URL -> Number of minutes 1 -> create prestige url 
+After you create the presigned URL, it’s automatically copied to your clipboard.
+paste it in browser url and access the jpg image
+
+after onme minute
+https://raviv-shweid-s3-demo.s3.eu-north-1.amazonaws.com/todd-kent-178j8tJrNlc-unsplash.jpg?response-content-disposition=inline&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEAEaCmV1LW5vcnRoLTEiRjBEAiA2nvJ8p1hSYlYI%2F2UfB4q6fR9u1VvnoDqR1Hnw9nOBbAIgBYIvLQNk0P8M9rbWhxY4IZsB132rWFfK3%2FxE625QBJcqwgMI2%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FARAAGgwyNjY4MzMyMjA2NjYiDCltkM0qP8%2FK9BKVRSqWA5R2bZXeRy9xbAJ2RwwYOYGPbnFuTOp4mtzdXKDV3fY5zBOI7%2BbwW0P7A20pK%2FytFITCNwqDR6eKtRcRDpHWoKRriysfNuA9jsABzD24RNMQCqv5Bw1Hx0Pty6H2c26YIBcr0RT%2B2hZv2E5wlgJhuYQ520zUeBcvBUrp%2BHdpKxeJk%2BGZqY88O%2Brxt64hDKszulrEvEEbiwrVa5SQpLw2%2FdOezJ8EpOksA2UhtyHr3YTL2vWanb55nmHyNobaqvtMKtuY2GRjiaEDkqGNTzQ0Z0S0zCTc8zqAUeqVpHu2LWxvPLNxI5HlcyDphFu9Qm4RincYIaU7eVoLSoQkneirqEDO28FkOPgaB99L6GdhxtLZhopZq4f5QfW6I8xG5Iia32FOXZRqShjGloRSeSwCZRvW0VsyHGORYHLVtUyuoEiqfDrJ9JlgX0IesY6cL0hb8IacgNJqyFm6TGF4l8wpXCUEYjaObVZWVvgBudEQDXBbcc7z363d%2F9Pbz2iAa7ZpOpS8cUTU411%2FrKI911v707LDXgxlny8wiaGmwgY63wK4NEOichV2SkbCEWnIHhVxxAnslIviPcMGoIiRCVpL67uVMAVnBG9ka72ixtSFRAU6ha0EUcjwBvU6EzZafEe7iYTkc%2Br0iRZVl22zc%2BTaKZKR2OiVEFbB2e1FInHdT91ItUhv2jhac%2F6il2%2BQlBFKUU0%2Bclp%2F8RBCAX2ebYoeFFWvOe3x%2FXeXD%2FnJ8jgdiw9JHoZ0zEGZrAGmGOhVYktFDio6eJ6Gzc%2Bx2JceedZJIuQJwLIgB8dt%2FcUd8fTMJ2OxeApFcQiFZ5JIlLMmcH7MED2DFNNK8clYTiJcMJbNql69sBipO0WSwHp1WsjrHhP0SJ8LuF8OBRKJnJGxC1i63QR3WZDBB27SM8Q7R5oldYuJEIUsdZo0gkiC8NqxqRgfgA6JnRr0QjKcaagbSadPf4EVsSJYEcrwMbApSPf7UrbvKL2xJy41O33qw2ZRi%2FlDR8HnnlQk%2BxEUv2VAtzc%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAT4ID72Q5FE4BOM4D%2F20250611%2Feu-north-1%2Fs3%2Faws4_request&X-Amz-Date=20250611T172842Z&X-Amz-Expires=60&X-Amz-SignedHeaders=host&X-Amz-Signature=af3ed6c09719f86a248751d1514a31ffd3f410ce5e10d40e9e0b6135a6ec199c
+
+<Code>AccessDenied</Code>
+<Message>Request has expired</Message>
+<X-Amz-Expires>60</X-Amz-Expires>
+
+
+this upload in real world will down through s3 API
+
+
+now we press cloudShell terminal
+this terminal inherits the user previlages
+
+cli :
+
+~ $ aws
+
+usage: aws [options] <command> <subcommand> [<subcommand> ...] [parameters]
+To see help text, you can run:
+
+  aws help
+  aws <command> help
+  aws <command> <subcommand> help
+
+aws: error: the following arguments are required: command
+
+
+copy s3 URI ->  paste in terminal s3://raviv-shweid-s3-demo/todd-kent-178j8tJrNlc-unsplash.jpg
+
+~ $ aws  s3   cp  s3://raviv-shweid-s3-demo/todd-kent-178j8tJrNlc-unsplash.jpg   .
+download: s3://raviv-shweid-s3-demo/todd-kent-178j8tJrNlc-unsplash.jpg to ./todd-kent-178j8tJrNlc-unsplash.jpg
+~ $ ll
+total 7076
+-rw-r--r--. 1 cloudshell-user cloudshell-user 7243272 Jun 11 17:25 todd-kent-178j8tJrNlc-unsplash.jpg
+~ $ 
+
+we have just downloaded our file AWS CLI(warpper to s3 API)
+close terminal window
+open again
+
+all is there : 
+
+~ $ history
+    1  aws
+    2  ll
+    3  pwd
+    4  aws  s3   cp  s3://raviv-shweid-s3-demo/todd-kent-178j8tJrNlc-unsplash.jpg   .
+    5  ll
+    6  exit
+    7  history
+~ $ ll
+total 7076
+-rw-r--r--. 1 cloudshell-user cloudshell-user 7243272 Jun 11 17:25 todd-kent-178j8tJrNlc-unsplash.jpg
+~ $ 
+
+IN bucket goto Management tab : 
+https://eu-north-1.console.aws.amazon.com/s3/buckets/raviv-shweid-s3-demo?region=eu-north-1&bucketType=general&tab=management
+click "create life cycly rule"
+
+Lifecycle rule actions -> check "Transition current versions of objects between storage classes"
+Choose storage class transitions  ->  choose Glacier deep archive 180"
+Days after object creation ->  180
+we will not create rule to avoid charges -> click cancel
+
+
+THis rule set object after 180 days it will go Deep archive
+
+
+
+back to bucket -> click delete we get "This bucket is not empty" we have one file yet.
+we click "empty bucket" -> "permanently delete" -> click Empty
+
+before we delete "copy ARN" : arn:aws:s3:::raviv-shweid-s3-demo  this is the AWS resource ID.
+just for general info not required for delete.
+
+goto buckets -> Delete -> Delete bucket
+
+S3 class is done
+
+
+
+EFS class
+===========
+
