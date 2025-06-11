@@ -1,3 +1,4 @@
+please create detailed md document for the bellow AWS class:
 
 
 AWS storage resources
@@ -114,4 +115,67 @@ S3 class is done
 
 EFS class
 ===========
+
+serach "efs" -> click "Create file system" -> name "efs-01" -> deafult VPC -> Create file system
+check the create efs 
+
+
+now we will create 2 esc2
+
+now lets go back to EFS we created, "vew details" -> goto Newtwerk tab -> 
+
+
+copy first security group : sg-032d8ef946aa5c4f4 
+
+goto EC2 security group -> goto  sg-032d8ef946aa5c4f4  Inbound rules tab -> click edit inbound rules -> click "add rule" ->  NFS type, 0.0.0.0/0 () -> save rules
+
+Go back EFS -> click -> top right click "Attach" - > 
+copy : sudo mount -t efs -o tls fs-088fce048ec59b7e3:/ efs
+
+connect to ec2-01 -> sudo yum install -y amazon-efs-utils
+sudo mkdir efs
+
+[ec2-user@ip-172-31-34-86 ~]$ sudo mkdir efs
+[ec2-user@ip-172-31-34-86 ~]$ sudo mount -t efs -o tls fs-088fce048ec59b7e3:/ efs
+[ec2-user@ip-172-31-34-86 ~]$ 
+
+
+[ec2-user@ip-172-31-34-86 ~]$ df -h
+Filesystem        Size  Used Avail Use% Mounted on
+devtmpfs          4.0M     0  4.0M   0% /dev
+tmpfs             453M     0  453M   0% /dev/shm
+tmpfs             181M  488K  181M   1% /run
+/dev/nvme0n1p1    8.0G  1.6G  6.4G  20% /
+tmpfs             453M     0  453M   0% /tmp
+/dev/nvme0n1p128   10M  1.3M  8.7M  13% /boot/efi
+tmpfs              91M     0   91M   0% /run/user/1000
+127.0.0.1:/       8.0E     0  8.0E   0% /home/ec2-user/efs
+
+
+let go to es2-02 -> "connect" -> ssh -i "key01.pem" ec2-user@ec2-51-21-180-135.eu-north-1.compute.amazonaws.com
+[ec2-user@ip-172-31-36-25 ~]$ sudo mkdir efs
+[ec2-user@ip-172-31-36-25 ~]$ sudo mount -t efs -o tls fs-088fce048ec59b7e3:/ efs
+[ec2-user@ip-172-31-36-25 ~]$ cd efs/
+[ec2-user@ip-172-31-36-25 efs]$ ll
+total 4
+-rw-r--r--. 1 root root 3 Jun 11 18:40 01.txt
+[ec2-user@ip-172-31-36-25 efs]$ cat 01.txt 
+01
+
+
+delete s3
+mission acomplishes bothe ec2 are connected to same storage and we can see the file from bothe ec2 machines
+
+terminate all ecs instances
+delete efs
+
+
+all clean lesson ended
+
+
+
+
+
+
+
 
