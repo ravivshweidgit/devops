@@ -1,0 +1,152 @@
+
+For the below lesson script, please create detailed user guide MD format :
+
+AWS Lambda
+
+search Lambda ->  https://eu-north-1.console.aws.amazon.com/lambda/home?region=eu-north-1#/functions
+
+Create a function :
+
+https://eu-north-1.console.aws.amazon.com/lambda/home?region=eu-north-1#/create/function?firstrun=true&intent=authorFromScratch
+
+Create function from scratch
+
+Function name : lambda-01
+
+Runtime : Python 3.13
+
+Click Create function
+
+arn:aws:lambda:eu-north-1:266833220666:function:lambda-01
+
+We are on code tab , hello worl lambda python is there, we will move to test tab
+
+click test : open details to see th result :
+{
+  "statusCode": 200,
+  "body": "\"Hello AWS from Lambda!\""
+}
+
+to save code changed , click Deploy button.
+
+Test event 
+----------
+Event name : lambda-test-event-01
+
+click Save (next to Test button top right)
+
+Edit lambda code :
+import json
+
+def lambda_handler(event, context):
+    # TODO implement
+    print("value1 = " + event['key1'])
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': 'Hello AWS from Lambda!',
+            'event': event  # Add the event object to the returned JSON
+        })
+    }
+
+ click deploy
+
+Create new event :
+lambda-test-event-02
+event JSON
+{
+  "key1": "value4",
+  "key2": "value5",
+  "key3": "value6"
+}
+
+now we can see for different events  differet Test outpus :
+Executing function: succeeded (logs )
+Details
+
+lambda-test-event-01 : 
+{
+  "statusCode": 200,
+  "body": "{\"message\": \"Hello AWS from Lambda!\", \"event\": {\"key1\": \"value1\", \"key2\": \"value2\", \"key3\": \"value3\"}}"
+}
+
+lambda-test-event-02 : 
+{
+  "statusCode": 200,
+  "body": "{\"message\": \"Hello AWS from Lambda!\", \"event\": {\"key1\": \"value1\", \"key2\": \"value2\", \"key3\": \"value3\"}}"
+}
+
+
+Monitor tab
+===========
+CloudWatch metrics
+some graphs..
+
+Configuration tab
+=================
+Permissions on the left -> 
+click Execution role Role name : lambda-01-role-4ei4tl8z 
+
+Permissions policies (1) Info
+You can attach up to 10 managed policie click Policy name :
+AWSLambdaBasicExecutionRole-4e8ce2e3-af08-4e54-94b2-f120baf1294f
+
+Now we are in IAM Policy : -> Click JSON :
+Permissions defined in this policy 
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "logs:CreateLogGroup",
+            "Resource": "arn:aws:logs:eu-north-1:266833220666:*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": [
+                "arn:aws:logs:eu-north-1:266833220666:log-group:/aws/lambda/lambda-01:*"
+            ]
+        }
+    ]
+}
+
+
+search cloudwath ->
+https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#home:
+on the left menue Logs -> 
+Log groups -> /aws/lambda/lambda-01
+https://eu-north-1.console.aws.amazon.com/cloudwatch/home?region=eu-north-1#logsV2:log-groups/log-group/$252Faws$252Flambda$252Flambda-01
+
+
+Log streams 
+
+go back to Lamda - we have seen Dashboard - 
+
+Delete function (from actions) :
+Deleting a function permanently removes the function code. The related logs, roles, test event schemas, and triggers are retained in your account.
+
+Logs are not deleted.
+
+Note : Package type Zip , the editor code will be ziped, another  package type is  image container (not docker file, this is lambda image)
+
+finaly we delete the Lamda
+
+
+search cloudwatch to delete logs stream,
+Log groups
+Actions delete log group 
+
+search IAM delete role / policies
+
+search Billing and Cost Management -> Free tier
+https://us-east-1.console.aws.amazon.com/billing/home?region=us-east-1#/freetier
+
+Shows all billing
+
+
+
+
