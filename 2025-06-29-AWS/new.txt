@@ -1,0 +1,158 @@
+Please create details user guilde - MD format,  for the bellow AWS RDS lesson transcript:
+
+
+AWS RDS databases
+=================
+
+search "RDS" -> Aurora RDS https://eu-north-1.console.aws.amazon.com/rds/home?region=eu-north-1#
+
+Databases -> Create data base ->
+
+Engine -> MySQL (communiti)
+
+Templates -> Free tier (single AZ)
+
+Sdeettings : mySQlDB-01
+admin 
+seflf manage  Raviv12345!
+
+public access
+
+Create database ...
+
+
+BWe willl go now to DB secureity group
+Edit inbound rules
+Delete all exisiting rules
+Add new rule MYSQL/Aurora  source myIP
+SAve rules
+
+Now lets connect to the DB:
+
+mysql -h mysqldb-01.cf024kmmgpuw.eu-north-1.rds.amazonaws.com -u admin -p
+Raviv12345!
+
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 30
+Server version: 8.0.41 Source distribution
+
+Copyright (c) 2000, 2025, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> 
+mysql> SHOW DATABASES;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| my_app_db          |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+5 rows in set (0.10 sec)
+
+
+mysql> CREATE DATABASE db01;
+Query OK, 1 row affected (0.10 sec)
+
+mysql> SHOW DATABASES;
++--------------------+
+| Database           |
++--------------------+
+| db01               |
+| information_schema |
+| my_app_db          |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+6 rows in set (0.09 sec)
+
+use db01;
+
+
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO users (username, email, password_hash) VALUES
+('user_beta', 'beta@example.com', 'hashed_password_for_beta');
+
+
+mysql> select * from users;
++----+-----------+------------------+--------------------------+---------------------+
+| id | username  | email            | password_hash            | created_at          |
++----+-----------+------------------+--------------------------+---------------------+
+|  1 | user_beta | beta@example.com | hashed_password_for_beta | 2025-06-29 18:13:44 |
++----+-----------+------------------+--------------------------+---------------------+
+1 row in set (0.09 sec)
+
+exit;
+
+ok , we are out of the mySql client
+
+Go back to amazone console to delete the DB
+
+uncheck snap shot to fully delete -> then 'delete me'
+
+
+Goto could watch, to check any existing logs ...
+Logs, log groups, it was clean
+
+
+Dynamo DB class
+===============
+
+search "dynamoDB"
+
+we got Dashboard, just to look. DAX is cashed DB as we learned today
+
+Then we go tables -> create table ->
+
+table name : ProductCatalog
+Partition key : ProductID
+create table...
+
+
+goto created table , Action create items
+
+{
+  "ProductID": {
+    "S": "101"
+  },
+  "Price": {
+    "N": "0"
+  },
+  "ProducTitle": {
+    "S": "Devops course 2026"
+  },
+  "StartDate": {
+    "S": "2026-01-01"
+  }
+}
+
+{
+  "ProductID": {
+    "S": "102"
+  },
+  "ProductTitle": {
+    "S": "Full stack course 2026"
+  },
+  "StartDate": {
+    "S": "2026-01-01"
+  }
+}
+
+Explore items , scan , Add filters  run filter
+
+Delete table 'comfirm' ...
