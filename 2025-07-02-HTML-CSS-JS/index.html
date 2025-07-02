@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <h1 class="logo">MyDash</h1>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#stats">Stats</a></li>
+                <li><a href="#tasks">Tasks</a></li>
+                <li><a href="#profile">Profile</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="main-content">
+        <section id="home" class="hero-section">
+            <h2>Welcome Back, John!</h2>
+            <p class="current-time" id="current-time"></p>
+        </section>
+
+        <section id="stats" class="stats-section">
+            <h3>Quick Stats</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>Tasks Completed</h4>
+                    <span class="stat-number" id="completed-tasks">0</span>
+                </div>
+                <div class="stat-card">
+                    <h4>Hours Worked</h4>
+                    <span class="stat-number" id="hours-worked">0</span>
+                </div>
+                <div class="stat-card">
+                    <h4>Projects Active</h4>
+                    <span class="stat-number" id="active-projects">3</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="tasks" class="tasks-section">
+            <h3>Today's Tasks</h3>
+            <div class="task-input">
+                <input type="text" id="new-task" placeholder="Add a new task...">
+                <button id="add-task-btn">Add Task</button>
+            </div>
+            <ul class="task-list" id="task-list">
+                <!-- Tasks will be added here -->
+            </ul>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2025 MyDash. Practice Project</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
