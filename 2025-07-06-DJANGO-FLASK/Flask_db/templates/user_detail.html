@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.username }} - Flask App{% endblock %}
+
+{% block content %}
+<h1>{{ user.username }}</h1>
+
+<div class="card">
+    <h2>User Information</h2>
+    <p><strong>Username:</strong> {{ user.username }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Joined:</strong> {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    <p><strong>Status:</strong> {{ 'Active' if user.is_active else 'Inactive' }}</p>
+    <p><strong>Total Posts:</strong> {{ posts|length }}</p>
+</div>
+
+<h2>Posts by {{ user.username }}</h2>
+{% if posts %}
+    <div class="post-list">
+        {% for post in posts %}
+            <div class="card">
+                <h3>{{ post.title }}</h3>
+                <p>{{ post.content }}</p>
+                <p><small>Posted on {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</small></p>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <p>This user hasn't posted anything yet.</p>
+{% endif %}
+
+<a href="{{ url_for('users') }}" class="btn">Back to Users</a>
+{% endblock %}

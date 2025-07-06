@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Flask App{% endblock %}
+
+{% block content %}
+<h1>Welcome to Flask App with Database</h1>
+<p>This is a simple Flask application demonstrating database operations.</p>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div>
+        <h2>Users ({{ users|length }})</h2>
+        {% if users %}
+            <div class="user-list">
+                {% for user in users %}
+                    <div class="card">
+                        <h3><a href="{{ url_for('user_detail', user_id=user.id) }}">{{ user.username }}</a></h3>
+                        <p>Email: {{ user.email }}</p>
+                        <p>Joined: {{ user.created_at.strftime('%Y-%m-%d') }}</p>
+                        <p>Posts: {{ user.posts|length }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No users found. <a href="{{ url_for('add_user') }}">Add the first user</a></p>
+        {% endif %}
+    </div>
+    
+    <div>
+        <h2>Recent Posts ({{ posts|length }})</h2>
+        {% if posts %}
+            <div class="post-list">
+                {% for post in posts %}
+                    <div class="card">
+                        <h3>{{ post.title }}</h3>
+                        <p>{{ post.content[:100] }}{% if post.content|length > 100 %}...{% endif %}</p>
+                        <p><small>By: <a href="{{ url_for('user_detail', user_id=post.user_id) }}">{{ post.user.username }}</a> 
+                           on {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</small></p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No posts found. <a href="{{ url_for('add_post') }}">Add the first post</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
