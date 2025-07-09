@@ -1,0 +1,176 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+
+k8s Service account role role-binding example RBAC
+==================================================
+
+cd :
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS$ cd rbac_k8s/
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ ll
+total 24
+drwxr-xr-x 2 ravivm ravivm 4096 Jul  3 23:31 ./
+drwxrwxr-x 3 ravivm ravivm 4096 Jul  9 20:45 ../
+-rw-r--r-- 1 ravivm ravivm  993 Jul  3 23:31 nginxpod.yaml
+-rw-r--r-- 1 ravivm ravivm  273 Jul  3 23:26 rolebinding.yaml
+-rw-r--r-- 1 ravivm ravivm  180 Jul  3 23:25 role.yaml
+-rw-r--r-- 1 ravivm ravivm   84 Jul  3 23:21 sa.yaml
+
+
+~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl apply -f nginxpod.yaml
+pod/nginx-pod created
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl apply -f sa.yaml 
+serviceaccount/dev-user created
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl get sa
+NAME       SECRETS   AGE
+default    0         3m48s
+dev-user   0         13s
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl apply -f role.yaml 
+role.rbac.authorization.k8s.io/pod-reader created
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl get role
+NAME         CREATED AT
+pod-reader   2025-07-09T17:57:54Z
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl apply -f rolebinding.yaml 
+rolebinding.rbac.authorization.k8s.io/pod-reader-binding created
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl get rolebinding
+NAME                 ROLE              AGE
+pod-reader-binding   Role/pod-reader   11s
+
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl create token dev-user --namespace default
+eyJhbGciOiJSUzI1NiIsImtpZCI6IkZweHhobllwaXVKQTFZbFFkVzByNVc1eGZMS0EwZkdKWWE4elVkbl9yUGMifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNzUyMDg3Nzg3LCJpYXQiOjE3NTIwODQxODcsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwianRpIjoiNmNhMWUwMzktM2Y3Yy00NWY4LTkyZmEtMTMzMzhkMTdlNGQ4Iiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJkZWZhdWx0Iiwic2VydmljZWFjY291bnQiOnsibmFtZSI6ImRldi11c2VyIiwidWlkIjoiMmI2MWE4ODctYTg4MC00MjQ5LWE2ZjAtNGNmNjIyYjY2MDI0In19LCJuYmYiOjE3NTIwODQxODcsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRldi11c2VyIn0.WGSmImYZEem2V_moNXH7TJhbGMhNku4zi-d0BFMXQIDKy7MCXTqi_6bpEFVMtxFSwZnDn93ycJv8l8I4iF9HGwcHfN0fKigsrEaeTh4vHUxCpFtN77GsbCNbJnMwp5TdJ0H3Nl9f0ZRGw8v2fIl-XSlRDp0H8Moamk8t0vJOdIwHQiHLRS5gq9Ivt4S8o4Tl7s-XxDn9ooGsZpIIQfp_B0XUdGFURjF7XqWqLSNLMENAoOV1Y141BHOGpjsBCeqqgSkHMszWJIjltOF8ipAfSqAWPBOtOx8aoMKEW0U2t-EsdUZiZt3aSxdHHz4qwmrkPVF46ldPHJkH1Diz6Pkz7w
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl config set-credentials dev-user --token=$TOKEN
+User "dev-user" set.
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl config set-context dev-user-context --cluster=minikube --user=dev-user
+Context "dev-user-context" created.
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl config use-context dev-user-context
+Switched to context "dev-user-context".
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl create token dev-user --namespace default > token.txt
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ ll -rt
+total 28
+-rw-r--r-- 1 ravivm ravivm   84 Jul  3 23:21 sa.yaml
+-rw-r--r-- 1 ravivm ravivm  180 Jul  3 23:25 role.yaml
+-rw-r--r-- 1 ravivm ravivm  273 Jul  3 23:26 rolebinding.yaml
+-rw-r--r-- 1 ravivm ravivm  993 Jul  3 23:31 nginxpod.yaml
+drwxrwxr-x 3 ravivm ravivm 4096 Jul  9 20:45 ../
+drwxr-xr-x 2 ravivm ravivm 4096 Jul  9 21:10 ./
+-rw-rw-r-- 1 ravivm ravivm  933 Jul  9 21:16 token.txt
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ cat token.txt 
+eyJhbGciOiJSUzI1NiIsImtpZCI6InVhN2NLZEVmMXV3YWw2TUtYZnRPTS0tVTVyYWxRVHJFRzRSSGFLb2J5cXMifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNzUyMDg4NTkxLCJpYXQiOjE3NTIwODQ5OTEsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwianRpIjoiY2I4MTY0MDAtYjI5My00MTRhLTgyN2QtMWE2MjI2MTJkYzU2Iiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJkZWZhdWx0Iiwic2VydmljZWFjY291bnQiOnsibmFtZSI6ImRldi11c2VyIiwidWlkIjoiODY2OWI1ODctZjNmMC00MWE5LWJlYTgtZGMxMzFkYmEzYzI1In19LCJuYmYiOjE3NTIwODQ5OTEsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRldi11c2VyIn0.d4NETiQuoGSBZjPe6F52p1v0UGb_8UKWXqwoOwPgdoHBFuEn4y7eRBH8aB01hEEsf8WFqc4rcMkwBS7BwaYuvvIQtUx6Yo7BF_RdSpKcHB6oshiCSoZmeEVgiEwahCdvVbdpmvQGsiFzuUm6QQBDQQx2crY5OXWMRHK7IybnOKBUL9C92TMj-NOfJJ1eTRugb6G55uvwmZEoT-LFbLszWHDLAyIpdEgUsl8C7DBW5LVtJEWa2Hc0akwBk1TJihGOVG5X7O35odY7WjDsBUavr_x-nZI2qgAVbyGR0hnPOiARpHJwaRHA6uMZEqhgacVbUcqs-Nravivm@ravivm@ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ TOKEN=$(cat token.txt)
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ echo $TOKEN
+eyJhbGciOiJSUzI1NiIsImtpZCI6InVhN2NLZEVmMXV3YWw2TUtYZnRPTS0tVTVyYWxRVHJFRzRSSGFLb2J5cXMifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNzUyMDg4NTkxLCJpYXQiOjE3NTIwODQ5OTEsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwianRpIjoiY2I4MTY0MDAtYjI5My00MTRhLTgyN2QtMWE2MjI2MTJkYzU2Iiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJkZWZhdWx0Iiwic2VydmljZWFjY291bnQiOnsibmFtZSI6ImRldi11c2VyIiwidWlkIjoiODY2OWI1ODctZjNmMC00MWE5LWJlYTgtZGMxMzFkYmEzYzI1In19LCJuYmYiOjE3NTIwODQ5OTEsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRldi11c2VyIn0.d4NETiQuoGSBZjPe6F52p1v0UGb_8UKWXqwoOwPgdoHBFuEn4y7eRBH8aB01hEEsf8WFqc4rcMkwBS7BwaYuvvIQtUx6Yo7BF_RdSpKcHB6oshiCSoZmeEVgiEwahCdvVbdpmvQGsiFzuUm6QQBDQQx2crY5OXWMRHK7IybnOKBUL9C92TMj-NOfJJ1eTRugb6G55uvwmZEoT-LFbLszWHDLAyIpdEgUsl8C7DBW5LVtJEWa2Hc0akwBk1TJihGOVG5X7O35odY7WjDsBUavr_x-nZI2qgAVbyGR0hnPOiARpHJwaRHA6uMZEqhgacVbUcqs-NiDF2pGe0WSmUjm4Q
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl get po
+NAME        READY   STATUS    RESTARTS   AGE
+nginx-pod   1/1     Running   0          8m45s
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl delete po nginx-pod
+Error from server (Forbidden): pods "nginx-pod" is forbidden: User "system:serviceaccount:default:dev-user" cannot delete resource "pods" in API group "" in the namespace "default"
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl config use-context minikube
+Switched to context "minikube".
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ kubectl delete po nginx-pod
+pod "nginx-pod" deleted
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/rbac_k8s$ 
+
+
+Ingress
+=======
+
+drwxrwxr-x 10 ravivm ravivm 4096 Jul  9 21:44 k8s-labs/
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS$ git clone git@github.com:erangcy/k8s-labs.git
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/k8s-labs$ cd lab-ingress/
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/k8s-labs/lab-ingress$ pwd
+/home/ravivm/projects/devops/2025-07-09-RBAC-INGRESS/k8s-labs/lab-ingress
+
+
+
+avivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/k8s-labs/lab-ingress$ kubectl create namespace ingress-nginx
+namespace/ingress-nginx created
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/k8s-labs/lab-ingress$ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.1/deploy/static/provider/cloud/deploy.yaml
+Warning: resource namespaces/ingress-nginx is missing the kubectl.kubernetes.io/last-applied-configuration annotation which is required by kubectl apply. kubectl apply should only be used on resources created declaratively by either kubectl create --save-config or kubectl apply. The missing annotation will be patched automatically.
+namespace/ingress-nginx configured
+serviceaccount/ingress-nginx created
+serviceaccount/ingress-nginx-admission created
+role.rbac.authorization.k8s.io/ingress-nginx created
+role.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+configmap/ingress-nginx-controller created
+service/ingress-nginx-controller created
+service/ingress-nginx-controller-admission created
+deployment.apps/ingress-nginx-controller created
+job.batch/ingress-nginx-admission-create created
+job.batch/ingress-nginx-admission-patch created
+ingressclass.networking.k8s.io/nginx created
+validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/k8s-labs/lab-ingress$ ll
+total 32
+drwxrwxr-x  2 ravivm ravivm 4096 Jul  9 21:44 ./
+drwxrwxr-x 10 ravivm ravivm 4096 Jul  9 21:44 ../
+-rw-rw-r--  1 ravivm ravivm  345 Jul  9 21:44 birds.yaml
+-rw-rw-r--  1 ravivm ravivm  339 Jul  9 21:44 cats.yaml
+-rw-rw-r--  1 ravivm ravivm  339 Jul  9 21:44 dogs.yaml
+-rw-rw-r--  1 ravivm ravivm  722 Jul  9 21:44 ingress.yaml
+-rw-rw-r--  1 ravivm ravivm  212 Jul  9 21:44 kustomization.yaml
+-rw-rw-r--  1 ravivm ravivm 1967 Jul  9 21:44 README.md
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/k8s-labs/lab-ingress$ kubectl create -f cats.yaml
+pod/cats-app created
+service/cats-service created
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/k8s-labs/lab-ingress$ kubectl create -f dogs.yaml
+pod/dogs-app created
+service/dogs-service created
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/k8s-labs/lab-ingress$ kubectl create -f birds.yaml
+pod/birds-app created
+service/birds-service created
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/k8s-labs/lab-ingress$ kubectl create -f ingress.yaml
+ingress.networking.k8s.io/app-ingress created
+
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/k8s-labs/lab-ingress$ kubectl get po 
+NAME        READY   STATUS    RESTARTS   AGE
+birds-app   1/1     Running   0          2m9s
+cats-app    1/1     Running   0          2m32s
+dogs-app    1/1     Running   0          2m23s
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-09-RBAC-INGRESS/k8s-labs/lab-ingress$ minikube service ingress-nginx-controller --url -n ingress-nginx
+http://192.168.49.2:31672
+http://192.168.49.2:30425
+
+
+http://192.168.49.2:31672/dogs
+http://192.168.49.2:31672/cats
+http://192.168.49.2:31672/birds
+http://192.168.49.2:31672/notexist
+
+
+cleanup
+minikube delete
+
+
+
+
+
+
+
+
+
+
+
+
+
