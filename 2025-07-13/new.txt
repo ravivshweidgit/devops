@@ -1,0 +1,116 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+HorizontalPodAutoscaler example :
+=================================
+
+git clone git@github.com:erangcy/k8s-labs.git
+
+cd kubernetes-hpa-example
+
+/home/ravivm/projects/devops/2025-07-13/kubernetes-hpa-example
+
+minikube start
+minikube addons enable metrics-server
+kubectl apply -f k8s
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-13/kubernetes-hpa-example$ ab
+Command 'ab' not found, but can be installed with:
+sudo apt install apache2-utils
+ab
+
+kubectl get pods
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-13/kubernetes-hpa-example$ minikube service node-example
+|-----------|--------------|-------------|---------------------------|
+| NAMESPACE |     NAME     | TARGET PORT |            URL            |
+|-----------|--------------|-------------|---------------------------|
+| default   | node-example |        3000 | http://192.168.49.2:30001 |
+|-----------|--------------|-------------|---------------------------|
+🎉  Opening service default/node-example in default browser...
+
+
+ab -c 5 -n 1000 -t 100000  http://192.168.49.2:30001/
+
+more pods are added :
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-13/kubernetes-hpa-example$ kubectl get pods
+NAME                           READY   STATUS              RESTARTS   AGE
+node-example-b46867d54-48jw7   0/1     ContainerCreating   0          0s
+node-example-b46867d54-h4jwr   0/1     ContainerCreating   0          0s
+node-example-b46867d54-jbh27   0/1     ContainerCreating   0          0s
+node-example-b46867d54-ll6tx   1/1     Running             0          13m
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-13/kubernetes-hpa-example$ Opening in existing browser session.
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-13/kubernetes-hpa-example$ kubectl get hpa
+NAME           REFERENCE                 TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+node-example   Deployment/node-example   cpu: 63%/1%   1         4         4          14m
+
+after while .... back to 1 replicas
+
+NAME           REFERENCE                 TARGETS      MINPODS   MAXPODS   REPLICAS   AGE
+node-example   Deployment/node-example   cpu: 0%/1%   1         4         1          23m
+
+
+minikube delete
+minikube start
+
+
+KEDA example
+=============================
+
+https://digital-power.com/en/inspiration/kubernetes-based-event-driven-autoscaling-with-keda-a-practical-guide/
+
+
+git clone git@github.com:digital-power/tutorial-kubernetes-event-driven-autoscaling.git
+
+cd tutorial-kubernetes-event-driven-autoscaling
+
+kubectl apply -f https://github.com/kedacore/keda/releases/download/v2.10.1/keda-2.10.1-core.yaml
+kubectl get pods -n keda
+
+Redis
+To launch the Redis server, simply run the following two commands from the project root directory:
+
+kubectl apply -f manifests/deployments/redis-deployment.yaml
+kubectl apply -f manifests/services/redis-service.yaml
+
+deployment.apps/redis created
+service/redis created
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-13/tutorial-kubernetes-event-driven-autoscaling$ kubectl get deployments
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+redis   1/1     1            1           2m32s
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-13/tutorial-kubernetes-event-driven-autoscaling$ kubectl get services
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP    9m40s
+redis        ClusterIP   10.103.156.69   <none>        6379/TCP   2m8s
+
+kubectl apply -f manifests/volumes/data-pvc.yaml
+kubectl apply -f manifests/helpers/pvc-inspection.yaml
+
+persistentvolumeclaim/data-pvc created
+pod/pvc-inspection-pod created
+
+
+Python Docker Images
+To execute the data generator job and the scaled CSV processor job, we will create and push Docker images to a container registry hosted on the Minikube cluster. To activate the registry, an addon must be enabled within Minikube. This can be achieved by executing the following command:
+
+minikube addons enable registry  , let this window stay open and open new terminal in same directory
+
+docker run --rm -it --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000"
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-13/tutorial-kubernetes-event-driven-autoscaling$ minikube addons enable registry
+💡  registry is an addon maintained by minikube. For any concerns contact minikube on GitHub.
+You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
+    ▪ Using image gcr.io/k8s-minikube/kube-registry-proxy:0.0.8
+    ▪ Using image docker.io/registry:2.8.3
+🔎  Verifying registry addon...
+
+Verifying registry addon...
+🌟  The 'registry' addon is enabled
+
+
+minikube start   --driver=docker 
