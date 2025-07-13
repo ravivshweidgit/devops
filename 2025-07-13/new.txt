@@ -56,6 +56,11 @@ minikube delete
 minikube start
 
 
+
+Please review the following KEDA class on ubintu linux , we had some ptoblems in the end , our teacher was running on mac no issues,
+Maybe you can figurte out why linux ubuntu was stuch vs mac ?
+
+
 KEDA example
 =============================
 
@@ -107,10 +112,245 @@ ravivm@ravivm-N501VW:~/projects/devops/2025-07-13/tutorial-kubernetes-event-driv
 You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
     ▪ Using image gcr.io/k8s-minikube/kube-registry-proxy:0.0.8
     ▪ Using image docker.io/registry:2.8.3
-🔎  Verifying registry addon...
+🔎  Verifying registry addon... <=====  the problem it was stucked here
 
+this example of good log in mac :
 Verifying registry addon...
-🌟  The 'registry' addon is enabled
+🌟  The 'registry' addon is enabled <=== success
 
 
 minikube start   --driver=docker 
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-13$ minikube addons enable registry --images="KubeRegistryProxy=gcr.io/google_containers/kube-registry-proxy:0.4"
+💡  registry is an addon maintained by minikube. For any concerns contact minikube on GitHub.
+You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
+    ▪ Using image gcr.io/google_containers/kube-registry-proxy:0.4
+    ▪ Using image docker.io/registry:2.8.3
+🔎  Verifying registry addon...
+🌟  The 'registry' addon is enabled
+
+
+
+
+Please create detailed MD file of the blow class examplec  :
+
+
+
+Okay, based on everything we learned and fixed, here's a revised, robust guide for the KEDA example, incorporating the solutions for the persistent ErrImagePull issue with local images in Minikube.
+
+The key takeaways we're applying are:
+
+Using eval $(minikube docker-env) to build images directly into Minikube's Docker daemon.
+
+Explicitly setting imagePullPolicy: Never for local images in your Kubernetes manifests.
+
+Understanding how to correctly re-run Kubernetes Jobs (delete then apply).
+
+Recognizing that the minikube addons enable registry is not necessary when using minikube docker-env for local image builds.
+
+KEDA Example: Corrected Guide for Kubernetes Event-Driven Autoscaling
+This guide provides the robust steps to get the KEDA example working reliably, especially addressing common Minikube local image pulling issues.
+
+Prerequisites:
+
+Minikube installed and running (preferably with --driver=docker for simplicity, though other drivers work if Docker is available in the VM).
+
+kubectl installed and configured.
+
+git installed.
+
+1. Clone the Project Repository
+Bash
+
+git clone https://github.com/digital-power/tutorial-kubernetes-event-driven-autoscaling.git
+cd tutorial-kubernetes-event-driven-autoscaling
+2. Start Minikube & Configure Docker Environment
+It's crucial to start Minikube and then direct your local Docker commands to Minikube's internal Docker daemon. This ensures that any images you build are immediately available within the Minikube cluster.
+
+Bash
+
+minikube start --driver=docker # Start Minikube (if not already running)
+
+# IMPORTANT: Configure your shell to use Minikube's Docker daemon
+eval $(minikube docker-env)
+(You will need to run eval $(minikube docker-env) in each new terminal session where you want to build Docker images for Minikube.)
+
+3. Install KEDA
+Install the KEDA core components into your cluster.
+
+Bash
+
+kubectl apply -f https://github.com/kedacore/keda/releases/download/v2.10.1/keda-2.10.1-core.yaml
+Verify KEDA installation:
+
+Bash
+
+kubectl get pods -n keda
+# All KEDA pods (e.g., keda-operator, keda-metrics-apiserver) should show 'Running' status.
+4. Deploy Redis (Message Queue)
+Deploy the Redis server which will serve as our message queue.
+
+Bash
+
+kubectl apply -f manifests/deployments/redis-deployment.yaml
+kubectl apply -f manifests/services/redis-service.yaml
+Verify Redis deployment:
+
+Bash
+
+kubectl get deployments redis
+kubectl get services redis
+# Both should show '1/1 Ready' or similar healthy status.
+5. Set up Persistent Volume Claim (PVC)
+The csv-processor will write processed files to a shared volume.
+
+Bash
+
+# Note: The original tutorial was missing data-pv.yaml, ensure it exists or create a simple one:
+# manifests/volumes/data-pv.yaml (if not present, create this file):
+# ---
+# apiVersion: v1
+# kind: PersistentVolume
+# metadata:
+#   name: data-pv
+# spec:
+#   capacity:
+#     storage: 1Gi
+#   volumeMode: Filesystem
+#   accessModes:
+#     - ReadWriteOnce
+#   persistentVolumeReclaimPolicy: Retain
+#   storageClassName: standard
+#   hostPath:
+#     path: "/mnt/data" # Minikube provides hostPath on its VM
+# ---
+
+# Apply the PV (if you created it)
+kubectl apply -f manifests/volumes/data-pv.yaml
+
+# Apply the PVC
+kubectl apply -f manifests/volumes/data-pvc.yaml
+Verify PVC binding (optional but good practice):
+
+Bash
+
+kubectl get pvc data-pvc
+# Status should be 'Bound'
+6. Build Python Docker Image for csv-processor
+Crucial Change: We will now build the csvprocessor image directly into Minikube's Docker daemon. You do NOT need minikube addons enable registry or the socat trick for this approach.
+
+Bash
+
+# Ensure you are in the project root directory where csv_processor.Dockerfile is located.
+# Re-run eval $(minikube docker-env) if you opened a new terminal.
+eval $(minikube docker-env)
+
+docker build -t csvprocessor:latest -f csv_processor.Dockerfile .
+Verify the image is in Minikube's Docker daemon:
+
+Bash
+
+docker images
+# You should see 'csvprocessor' with tag 'latest' listed.
+7. Deploy the Scaled Job (with Image Pull Policy Fix)
+Crucial Change: We must explicitly tell Kubernetes not to try pulling the csvprocessor:latest image from a remote registry.
+
+Edit the manifests/jobs/csv-processor-scaled-jobs.yaml file.
+Locate the containers section for csv-processor and add imagePullPolicy: Never right below the image: line.
+
+Your csv-processor container definition should look like this:
+
+YAML
+
+    containers:
+    - name: csv-processor
+      image: csvprocessor:latest
+      imagePullPolicy: Never # <--- ADD THIS LINE!
+      env:
+      - name: REDIS_HOST
+        value: redis
+      - name: REDIS_LIST
+        value: csvs-to-process
+      resources:
+        limits:
+          cpu: "0.2"
+          memory: "100Mi"
+        requests:
+          cpu: "0.2"
+          memory: "100Mi"
+      volumeMounts:
+      - name: data-volume
+        mountPath: /app/data
+Save the file.
+
+Apply the modified Scaled Job:
+
+Bash
+
+kubectl apply -f manifests/jobs/csv-processor-scaled-jobs.yaml
+You should see scaledjob.keda.sh/csv-processor configured.
+
+8. Generate Data and Trigger Scaling
+Now, we'll populate the Redis queue. KEDA will then detect the messages and scale up the csv-processor jobs.
+
+Delete any old csv-processor jobs first (if they exist from previous attempts):
+
+Bash
+
+kubectl get jobs -l scaledjob.keda.sh/name=csv-processor -o name | xargs -r kubectl delete
+# If xargs fails, list jobs manually with 'kubectl get jobs' and delete them one by one using 'kubectl delete job <job-name>'
+Delete any old data-generator jobs (to ensure a fresh run):
+
+Bash
+
+kubectl delete job data-generator --ignore-not-found=true
+Apply the data-generator to push messages to Redis:
+
+Bash
+
+kubectl apply -f manifests/jobs/data-generator.yaml
+You should see job.batch/data-generator created.
+
+Watch the pods to see the full workflow!
+
+Bash
+
+kubectl get pods -w
+You should now observe:
+
+A data-generator pod running and then completing.
+
+New csv-processor-... pods appearing, transitioning from Pending -> ContainerCreating -> Running -> and finally Completed. You should NOT see ErrImagePull or ImagePullBackOff anymore.
+
+9. Verification and Cleanup (Optional)
+Verify Redis Queue is Empty:
+
+Bash
+
+kubectl exec -it $(kubectl get pod -l app=redis -o jsonpath='{.items[0].metadata.name}') -- redis-cli LLEN csvs-to-process
+# Should return (integer) 0 once all processing is complete.
+List all Jobs:
+
+Bash
+
+kubectl get jobs
+# All relevant jobs (data-generator, csv-processor-...) should be 'Completed'.
+Cleanup:
+When you're done, you can delete all deployed resources:
+
+Bash
+
+kubectl delete -f manifests/jobs/data-generator.yaml --ignore-not-found=true
+kubectl delete -f manifests/jobs/csv-processor-scaled-jobs.yaml --ignore-not-found=true
+kubectl delete -f manifests/services/redis-service.yaml --ignore-not-found=true
+kubectl delete -f manifests/deployments/redis-deployment.yaml --ignore-not-found=true
+kubectl delete -f manifests/volumes/data-pvc.yaml --ignore-not-found=true
+kubectl delete -f manifests/volumes/data-pv.yaml --ignore-not-found=true # If you manually added it
+kubectl delete -f https://github.com/kedacore/keda/releases/download/v2.10.1/keda-2.10.1-core.yaml --ignore-not-found=true
+
+# Optionally stop/delete minikube
+minikube stop
+# or
+minikube delete
+This revised guide should provide a much smoother and more reliable experience for the KEDA example, directly addressing the core issues you faced.
