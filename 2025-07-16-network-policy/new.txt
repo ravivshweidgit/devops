@@ -1,0 +1,242 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+network-policy-demo
+=================================
+
+The target of this example os to block front end to connect mysql DB
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy$ ll
+total 20
+drwxr-xr-x 3 ravivm ravivm 4096 Jul 11 10:14 ./
+drwxrwxr-x 3 ravivm ravivm 4096 Jul 16 20:34 ../
+-rw-r--r-- 1 ravivm ravivm  297 Jul 11 09:14 db-netpol.yaml
+drwxr-x--- 6 ravivm ravivm 4096 Jun 16 18:13 istio-1.26.2/
+-rw-r--r-- 1 ravivm ravivm 1442 Jul 11 09:10 network-policy-demo.yaml
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy$ minikube delete
+🔥  Deleting "minikube" in docker ...
+🔥  Deleting container "minikube" ...
+🔥  Removing /home/ravivm/.minikube/machines/minikube ...
+💀  Removed all traces of the "minikube" cluster.
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy$ minikube start --network-plugin=cni --cni=calico
+😄  minikube v1.35.0 on Ubuntu 24.04
+✨  Automatically selected the docker driver. Other choices: virtualbox, ssh
+❗  With --network-plugin=cni, you will need to provide your own CNI. See --cni flag as a user-friendly alternative
+📌  Using Docker driver with root privileges
+👍  Starting "minikube" primary control-plane node in "minikube" cluster
+🚜  Pulling base image v0.0.46 ...
+🔥  Creating docker container (CPUs=2, Memory=3900MB) ...
+🐳  Preparing Kubernetes v1.32.0 on Docker 27.4.1 ...
+    ▪ Generating certificates and keys ...
+    ▪ Booting up control plane ...
+    ▪ Configuring RBAC rules ...
+🔗  Configuring Calico (Container Networking Interface) ...
+🔎  Verifying Kubernetes components...
+    ▪ Using image gcr.io/k8s-minikube/storage-provisioner:v5
+🌟  Enabled addons: storage-provisioner, default-storageclass
+💡  kubectl not found. If you need it, try: 'minikube kubectl -- get pods -A'
+🏄  Done! kubectl is now configured to use "minikube" cluster and "default" namespace by default
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy$ kubectl get pods -l k8s-app=calico-node -n kube-system
+NAME                READY   STATUS     RESTARTS   AGE
+calico-node-lsjb7   0/1     Init:0/3   0          5s
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy$ kubectl apply -f network-policy-demo.yaml
+pod/frontend created
+service/frontend created
+pod/backend created
+service/backend created
+service/db created
+pod/mysql created
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy$ kubectl get pods 
+NAME       READY   STATUS    RESTARTS   AGE
+backend    1/1     Running   0          56s
+frontend   1/1     Running   0          56s
+mysql      1/1     Running   0          56s
+
+
+kubectl exec -it frontend -- bash
+
+apt update && apt install telnet -y
+
+telnet db 3306
+
+root@frontend:/# telnet db 3306
+Trying 10.105.255.201...
+Connected to db.
+
+exit
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy$ kubectl get svc
+NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+backend      ClusterIP   10.101.169.142   <none>        80/TCP     11m
+db           ClusterIP   10.105.255.201   <none>        3306/TCP   11m
+frontend     ClusterIP   10.107.118.204   <none>        80/TCP     11m
+kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP    17m
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy$ kubectl apply -f db-netpol.yaml 
+networkpolicy.networking.k8s.io/db-netpol created
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy$ kubectl exec -it frontend -- bash
+root@frontend:/# 
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy$ kubectl exec -it frontend -- bash
+root@frontend:/# telnet db 3306
+Trying 10.105.255.201...
+
+blocked ...
+exit
+
+command terminated with exit code 130
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy$ kubectl exec -it backend -- bash
+root@backend:/# apt update && apt install telnet -y
+
+
+oot@backend:/# telnet db 3306
+Trying 10.105.255.201...
+Connected to db.
+
+example ended,  db connection blocked from front end , conected from backend only
+
+
+
+istio - sidecar pattern
+=================================
+minikube start --memory=4096
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy$ minikube start --memory=4096
+😄  minikube v1.35.0 on Ubuntu 24.04
+✨  Automatically selected the docker driver. Other choices: virtualbox, ssh
+📌  Using Docker driver with root privileges
+👍  Starting "minikube" primary control-plane node in "minikube" cluster
+🚜  Pulling base image v0.0.46 ...
+🔥  Creating docker container (CPUs=2, Memory=4096MB) ...
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2$ cd bin
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2/bin$ ll
+total 95344
+drwxr-x--- 2 ravivm ravivm     4096 Jun 16 18:13 ./
+drwxr-x--- 6 ravivm ravivm     4096 Jun 16 18:13 ../
+-rwxr-xr-x 1 ravivm ravivm 97618274 Jun 16 18:13 istioctl*
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2/bin$ 
+
+istop is corupted , lets download
+
+curl -L https://istio.io/downloadIstio | sh -
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2/bin$ cd istio-1.26.2/
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2/bin/istio-1.26.2$ 
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2/bin/istio-1.26.2$ cd bin 
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2/bin/istio-1.26.2/bin$ ll
+total 96044
+drwxr-x--- 2 ravivm ravivm     4096 Jun 16 18:12 ./
+drwxr-x--- 6 ravivm ravivm     4096 Jun 16 18:12 ../
+-rwxr-xr-x 1 ravivm ravivm 98332856 Jun 16 18:12 istioctl*
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2/bin/istio-1.26.2/bin$ ./istioctl install --set profile=demo -y
+        |\          
+        | \         
+        |  \        
+        |   \       
+      /||    \      
+     / ||     \     
+    /  ||      \    
+   /   ||       \   
+  /    ||        \  
+ /     ||         \ 
+/______||__________\
+____________________
+  \__       _____/  
+     \_____/        
+
+✔ Istio core installed                                                                                                           
+✔ Istiod installed 🧠                     
+✔ Egress gateways installed🛫
+✔ Ingress gateways installed 🛬                                                                                                                   
+✔ Installation complete
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2/bin/istio-1.26.2/bin
+
+
+
+export PATH=$PWD/bin:$PATH
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2/bin/istio-1.26.2/bin$ kubectl label namespace default istio-injection=enabled
+namespace/default labeled
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2$ ll
+total 48
+drwxr-x---  6 ravivm ravivm  4096 Jun 16 18:13 ./
+drwxr-xr-x  3 ravivm ravivm  4096 Jul 11 10:14 ../
+drwxr-x---  3 ravivm ravivm  4096 Jul 16 21:56 bin/
+-rw-r--r--  1 ravivm ravivm 11357 Jun 16 18:13 LICENSE
+drwxr-xr-x  4 ravivm ravivm  4096 Jun 16 18:13 manifests/
+-rw-r-----  1 ravivm ravivm   983 Jun 16 18:13 manifest.yaml
+-rw-r--r--  1 ravivm ravivm  6927 Jun 16 18:13 README.md
+drwxr-xr-x 27 ravivm ravivm  4096 Jun 16 18:13 samples/
+drwxr-xr-x  3 ravivm ravivm  4096 Jun 16 18:13 tools/
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2$ kubectl apply -f samples/bookinfo/platform/kube/bookinfo.yaml
+service/details created
+serviceaccount/bookinfo-details created
+deployment.apps/details-v1 created
+service/ratings created
+serviceaccount/bookinfo-ratings created
+deployment.apps/ratings-v1 created
+service/reviews created
+serviceaccount/bookinfo-reviews created
+deployment.apps/reviews-v1 created
+deployment.apps/reviews-v2 created
+deployment.apps/reviews-v3 created
+service/productpage created
+serviceaccount/bookinfo-productpage created
+deployment.apps/productpage-v1 created
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2$ pwd
+/home/ravivm/projects/devops/2025-07-16/network-policy/istio-1.26.2
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2$ kubectl get pods
+NAME                              READY   STATUS    RESTARTS   AGE
+details-v1-766844796b-jkbrg       2/2     Running   0          77s
+productpage-v1-54bb874995-q4c6g   2/2     Running   0          77s
+ratings-v1-5dc79b6bcd-55fkn       2/2     Running   0          77s
+reviews-v1-598b896c9d-85n8t       2/2     Running   0          77s
+reviews-v2-556d6457d-l7ktl        2/2     Running   0          77s
+reviews-v3-564544b4d6-9lr8t       2/2     Running   0          77s
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2$ ll
+total 48
+drwxr-x---  6 ravivm ravivm  4096 Jun 16 18:13 ./
+drwxr-xr-x  3 ravivm ravivm  4096 Jul 11 10:14 ../
+drwxr-x---  3 ravivm ravivm  4096 Jul 16 21:56 bin/
+-rw-r--r--  1 ravivm ravivm 11357 Jun 16 18:13 LICENSE
+drwxr-xr-x  4 ravivm ravivm  4096 Jun 16 18:13 manifests/
+-rw-r-----  1 ravivm ravivm   983 Jun 16 18:13 manifest.yaml
+-rw-r--r--  1 ravivm ravivm  6927 Jun 16 18:13 README.md
+drwxr-xr-x 27 ravivm ravivm  4096 Jun 16 18:13 samples/
+drwxr-xr-x  3 ravivm ravivm  4096 Jun 16 18:13 tools/
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2$ kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
+gateway.networking.istio.io/bookinfo-gateway created
+virtualservice.networking.istio.io/bookinfo created
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2$ 
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2$ minikube service istio-ingressgateway -n istio-system --url
+http://192.168.49.2:31835
+http://192.168.49.2:31171
+http://192.168.49.2:32058
+http://192.168.49.2:32205
+http://192.168.49.2:32019
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-16/network-policy/istio-1.26.2$ 
+
+2nd was working : http://192.168.49.2:31171/productpage
+
+
+
+
+
+
+
