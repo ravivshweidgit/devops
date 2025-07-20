@@ -1,0 +1,81 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+Admission control class 
+=======================
+
+
+minikube start --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: cpu-resource-constraint
+spec:
+  limits:
+  - default: # this section defines default limits
+      cpu: 500m
+    defaultRequest: # this section defines default requests
+      cpu: 500m
+    max: # max and min define the limit range
+      cpu: "1"
+    min:
+      cpu: 100m
+    type: Container
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-20-Admission-Control$ kubectl apply -f limit.yaml 
+limitrange/cpu-resource-constraint created
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-20-Admission-Control$ 
+
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-20-Admission-Control$ kubectl apply -f resource-exceeding-pod.yaml 
+The Pod "resource-exceeding-pod" is invalid: spec.containers[0].resources.requests: Invalid value: "12": must be less than or equal to cpu limit of 500m
+
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-20-Admission-Control$ kubectl create namespace InvalidNamespaceName
+The Namespace "InvalidNamespaceName" is invalid: metadata.name: Invalid value: "InvalidNamespaceName": a lowercase RFC 1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?')
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-20-Admission-Control$ 
+
+
+minikube delete
+
+
+
+
+
+minikube start --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook
+
+
+kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml
+
+kubectl apply -f https://raw.githubusercontent.com/citrix/citrix-k8s-ingress-controller/master/docs/how-to/webhook/httpsonly/template.yaml
+
+
+kubectl apply -f https://raw.githubusercontent.com/citrix/citrix-k8s-ingress-controller/master/docs/how-to/webhook/httpsonly/constraint.yaml
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-20-Admission-Control$ kubectl apply -f https://raw.githubusercontent.com/citrix/citrix-k8s-ingress-controller/master/docs/how-to/webhook/httpsonly/bad-example-ingress.yaml
+Error from server (Forbidden): error when creating "https://raw.githubusercontent.com/citrix/citrix-k8s-ingress-controller/master/docs/how-to/webhook/httpsonly/bad-example-ingress.yaml": admission webhook "validation.gatekeeper.sh" denied the request: [ingress-https-only] Ingress must be https. tls configuration is required for test-ingress
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-20-Admission-Control$ 
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-20-Admission-Control$ kubectl apply -f https://raw.githubusercontent.com/citrix/citrix-k8s-ingress-controller/master/docs/how-to/webhook/httpsonly/good-example-ingress.yaml
+ingress.networking.k8s.io/test-ingress created
+ingressclass.networking.k8s.io/citrix-ingress created
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-20-Admission-Control$ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
