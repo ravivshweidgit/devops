@@ -67,8 +67,8 @@ http://localhost:1000/
 ```
 
 **Login credentials:**
-- **Username:** ubuntu-c
-- **Password:** ansible
+- **Username:** ansible
+- **Password:** password
 
 ---
 
