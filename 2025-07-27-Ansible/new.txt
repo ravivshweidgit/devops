@@ -1,0 +1,113 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+
+Ansible
+=======================
+
+git clone git@github.com:spurin/diveintoansible-lab.git
+
+git clone git@github.com:spurin/diveintoansible.git
+
+cd diveintoansible-lab
+
+docker-compose up -d
+
+cd ..
+
+cp -r diveintoansible diveintoansible-lab/ansible_home/ubuntu-c/ansible
+
+http://localhost:1000/
+
+login 
+
+ubuntu-c : ansible / password
+
+
+
+ansible@ubuntu-c:~$ ssh-keygen
+Generating public/private rsa key pair.
+Enter file in which to save the key (/home/ansible/.ssh/id_rsa): 
+Created directory '/home/ansible/.ssh'.
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in /home/ansible/.ssh/id_rsa
+Your public key has been saved in /home/ansible/.ssh/id_rsa.pub
+The key fingerprint is:
+SHA256:0clutV0E0/FTJKI8N73BJqvBLx/MRdPM3KjR1LjWz2k ansible@ubuntu-c
+The key's randomart image is:
++---[RSA 3072]----+
+|            . =B=|
+|         + o *.X*|
+|        . B * X+O|
+|         + + @o=o|
+|        S = +.+.o|
+|         . * . Eo|
+|          o = .  |
+|           o .   |
+|            .    |
++----[SHA256]-----+
+ansible@ubuntu-c:~$ ssh-copy-id ansible@centos1
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/ansible/.ssh/id_rsa.pub"
+The authenticity of host 'centos1 (172.18.0.5)' can't be established.
+ECDSA key fingerprint is SHA256:gZJ2Oo5nHsXb9M/eh7qGfkvADM5zrBfwLUq8iY3dP6c.
+This key is not known by any other names
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+ansible@centos1's password: 
+
+Number of key(s) added: 1
+
+Now try logging into the machine, with:   "ssh 'ansible@centos1'"
+and check to make sure that only the key(s) you wanted were added.
+
+ansible@ubuntu-c:~$ ssh ansible@centos1
+[ansible@centos1 ~]$ exit
+logout
+Connection to centos1 closed.
+ansible@ubuntu-c:~$ 
+
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Architecture and Design/Inventories$ cd 01/
+ansible@ubuntu-c:~/diveintoansible/Ansible Architecture and Design/Inventories/01$ ansible -m ping all
+centos1 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Architecture and Design/Inventories/01$ ansible all -m command -a "ls -la"
+centos1 | CHANGED | rc=0 >>
+total 32
+drwxr-xr-x 4 ansible ansible 4096 Jul 27 18:35 .
+drwxr-xr-x 1 root    root    4096 Jul 27 17:39 ..
+drwx------ 3 ansible ansible 4096 Jul 27 18:35 .ansible
+-rw------- 1 ansible ansible    5 Jul 27 18:10 .bash_history
+-rw-r--r-- 1 ansible ansible   18 Feb 15  2024 .bash_logout
+-rw-r--r-- 1 ansible ansible  141 Feb 15  2024 .bash_profile
+-rw-r--r-- 1 ansible ansible  492 Feb 15  2024 .bashrc
+drwx------ 2 ansible ansible 4096 Jul 27 18:09 .ssh
+ansible@ubuntu-c:~/diveintoansible/Ansible Architecture and Design/Inventories/01$ 
+
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Architecture and Design/Inventories/01$ cat hosts
+[all]
+centos1
+
+
+facts:
+ansible all -m setup
+
+
+ansible all -m copy -a "src=./1.txt dest=~/1.txt"
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-27-Ansible$ cd  diveintoansible-lab/
+ravivm@ravivm-N501VW:~/projects/devops/2025-07-27-Ansible/diveintoansible-lab$ docker-compose down
+[+] Running 3/3
+ ✘ Container portal    Error while Stopping                                                                                                     14.1s 
+ ✔ Container docker    Removed                                                                                                                   1.3s 
+ ✔ Container ubuntu-c  Removed   
