@@ -1,0 +1,286 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+
+Ansible 2nd part
+=======================
+
+git clone git@github.com:spurin/diveintoansible-lab.git
+
+git clone git@github.com:spurin/diveintoansible.git
+
+cd diveintoansible-lab
+
+docker-compose up -d
+
+
+http://localhost:1000/
+
+ubuntu-c
+
+login 
+
+ubuntu-c : ansible / password
+
+
+ansible@ubuntu-c:~$ cd diveintoansible/
+ansible@ubuntu-c:~/diveintoansible$ 
+
+
+cd Ansible Playbooks, Introduction'/
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Ansible Playbooks, Breakdown of Sections$ cd 07
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Ansible Playbooks, Breakdown of Sections/07$ l
+ansible.cfg*  hosts*  motd_playbook.yaml*
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Ansible Playbooks, Breakdown of Sections/07$ ll
+total 20
+drwxrwxr-x  2 ansible ansible 4096 Jul 27 17:45 ./
+drwxrwxr-x 11 ansible ansible 4096 Jul 27 17:45 ../
+-rwxrwxr-x  1 ansible ansible   55 Jul 27 17:45 ansible.cfg*
+-rwxrwxr-x  1 ansible ansible  243 Jul 27 17:45 hosts*
+-rwxrwxr-x  1 ansible ansible 1222 Jul 27 17:45 motd_playbook.yaml*
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Ansible Playbooks, Breakdown of Sections/07$ 
+
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Ansible Playbooks, Breakdown of Sections/07$ cat ansible.cfg 
+[defaults]
+inventory = hosts
+host_key_checking = False
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Ansible Playbooks, Breakdown of Sections/07$ cat hosts 
+[control]
+ubuntu-c ansible_connection=local
+
+[centos]
+centos1 ansible_port=2222
+centos[2:3]
+
+[centos:vars]
+ansible_user=root
+
+[ubuntu]
+ubuntu[1:3]
+
+[ubuntu:vars]
+ansible_become=true
+ansible_become_pass=password
+
+[linux:children]
+centos
+ubuntu
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Ansible Playbooks, Breakdown of Sections/07$ 
+
+   48  ssh-copy-id root@centos1
+   49  ssh-copy-id root@centos2
+   50  ssh-copy-id root@centos3
+   52  ssh-copy-id ansible@ubuntu1
+   53  ssh-copy-id ansible@ubuntu2
+   54  ssh-copy-id ansible@ubuntu3
+
+ansible-playbook motd_playbook.yaml
+
+PLAY [linux] **************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************************************************
+fatal: [centos1]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host centos1 port 2222: Connection refused", "unreachable": true}
+ok: [centos2]
+ok: [centos3]
+ok: [ubuntu1]
+ok: [ubuntu3]
+ok: [ubuntu2]
+
+TASK [Configure a MOTD (message of the day)] ******************************************************************************************************************************
+skipping: [ubuntu1]
+skipping: [ubuntu2]
+skipping: [ubuntu3]
+changed: [centos2]
+changed: [centos3]
+
+TASK [Configure a MOTD (message of the day)] ******************************************************************************************************************************
+skipping: [centos2]
+skipping: [centos3]
+changed: [ubuntu1]
+changed: [ubuntu3]
+changed: [ubuntu2]
+
+RUNNING HANDLER [MOTD changed] ********************************************************************************************************************************************
+ok: [centos2] => {
+    "msg": "The MOTD was changed"
+}
+ok: [centos3] => {
+    "msg": "The MOTD was changed"
+}
+ok: [ubuntu1] => {
+    "msg": "The MOTD was changed"
+}
+ok: [ubuntu2] => {
+    "msg": "The MOTD was changed"
+}
+ok: [ubuntu3] => {
+    "msg": "The MOTD was changed"
+}
+
+PLAY RECAP ****************************************************************************************************************************************************************
+centos1                    : ok=0    changed=0    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0   
+centos2                    : ok=3    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+centos3                    : ok=3    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+ubuntu1                    : ok=3    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+ubuntu2                    : ok=3    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+ubuntu3                    : ok=3    changed=1    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+edit port 2222 to port 22
+
+end of exersise 01
+
+
+start exercise 2
+drwxrwxr-x  8 ansible ansible 4096 Jul 27 17:45  ./
+drwxrwxr-x  9 ansible ansible 4096 Jul 27 17:45  ../
+drwxrwxr-x 11 ansible ansible 4096 Jul 27 17:45 'Ansible Playbooks, Breakdown of Sections'/
+drwxrwxr-x  4 ansible ansible 4096 Jul 27 17:45 'Ansible Playbooks, Creating and Executing'/
+drwxrwxr-x  8 ansible ansible 4096 Jul 27 17:45 'Ansible Playbooks, Facts'/
+drwxrwxr-x 19 ansible ansible 4096 Jul 27 17:45 'Ansible Playbooks, Variables'/
+drwxrwxr-x 13 ansible ansible 4096 Jul 27 17:45 'Templating with Jinja2'/
+drwxrwxr-x 23 ansible ansible 4096 Jul 27 17:45  YAML/
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction$ cd 'Ansible Playbooks, Variables'/
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Ansible Playbooks, Variables$ 
+
+./show_examples.sh
+
+end exercice 2
+
+start execrcise 3
+
+cd
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ 
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ cat ansible.cfg 
+[defaults]
+inventory = hosts
+host_key_checking = False
+forks=6
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ 
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ cat hosts
+[control]
+ubuntu-c
+
+[centos]
+centos[1:3]
+
+[ubuntu]
+ubuntu[1:3]
+
+[linux:children]
+centos
+ubuntu
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ cat  group_vars/centos 
+---
+ansible_user: root
+...
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ cat  group_vars/ubuntu 
+---
+ansible_become: true
+ansible_become_pass: password
+...
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ 
+
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ cat host_vars/centos1 
+---
+ansible_port: 2222
+...
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ cat host_vars/ubuntu-c 
+---
+ansible_connection: local
+...
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ 
+
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ rm host_vars/centos1 
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ 
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ ansible-playbook blocks_playbook.yaml
+
+
+
+ASK [Gathering Facts] ****************************************************************************************************************************************************
+ok: [centos1]
+ok: [centos3]
+ok: [ubuntu1]
+ok: [ubuntu3]
+ok: [centos2]
+ok: [ubuntu2]
+
+TASK [Install patch] ******************************************************************************************************************************************************
+changed: [centos3]
+changed: [centos2]
+changed: [centos1]
+ok: [ubuntu3]
+ok: [ubuntu2]
+ok: [ubuntu1]
+
+TASK [Install python3-dnspython] ******************************************************************************************************************************************
+fatal: [centos3]: FAILED! => {"changed": false, "failures": ["No package python3-dnspython available."], "msg": "Failed to install some of the specified packages", "rc": 1, "results": []}
+fatal: [centos1]: FAILED! => {"changed": false, "failures": ["No package python3-dnspython available."], "msg": "Failed to install some of the specified packages", "rc": 1, "results": []}
+fatal: [centos2]: FAILED! => {"changed": false, "failures": ["No package python3-dnspython available."], "msg": "Failed to install some of the specified packages", "rc": 1, "results": []}
+changed: [ubuntu2]
+changed: [ubuntu1]
+changed: [ubuntu3]
+
+TASK [Rollback patch] *****************************************************************************************************************************************************
+changed: [centos1]
+changed: [centos3]
+changed: [centos2]
+
+TASK [Rollback python3-dnspython] *****************************************************************************************************************************************
+ok: [centos2]
+ok: [centos1]
+ok: [centos3]
+
+TASK [debug] **************************************************************************************************************************************************************
+ok: [centos1] => {
+    "msg": "This always runs, regardless"
+}
+ok: [centos2] => {
+    "msg": "This always runs, regardless"
+}
+ok: [centos3] => {
+    "msg": "This always runs, regardless"
+}
+ok: [ubuntu1] => {
+    "msg": "This always runs, regardless"
+}
+ok: [ubuntu2] => {
+    "msg": "This always runs, regardless"
+}
+ok: [ubuntu3] => {
+    "msg": "This always runs, regardless"
+}
+
+PLAY RECAP ****************************************************************************************************************************************************************
+centos1                    : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=1    ignored=0   
+centos2                    : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=1    ignored=0   
+centos3                    : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=1    ignored=0   
+ubuntu1                    : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+ubuntu2                    : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+ubuntu3                    : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Blocks/03$ 
+
+
+
+end of exercise 3
+
+start exercide 4
+cd
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Looping/21$
+
+PLAY RECAP ******************************************************************************************************************************************************************************************************
+centos1                    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+centos2                    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+centos3                    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+ubuntu1                    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+ubuntu2                    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+ubuntu3                    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Looping/21$ ansible-playbook until_playbook.yaml 
