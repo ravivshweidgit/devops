@@ -1,0 +1,242 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+
+Ansible 3nd part
+=======================
+
+git clone git@github.com:spurin/diveintoansible-lab.git
+
+git clone git@github.com:spurin/diveintoansible.git
+
+cd diveintoansible-lab
+
+docker-compose up -d
+
+
+http://localhost:1000/
+
+ubuntu-c
+
+login 
+
+ubuntu-c : ansible / password
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction$ cd 'Templating with Jinja2'
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Templating with Jinja2$ pwd
+/home/ansible/diveintoansible/Ansible Playbooks, Introduction/Templating with Jinja2
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Templating with Jinja2$ 
+
+
+cd 11
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Templating with Jinja2/11$ ll
+total 32
+drwxrwxr-x  4 ansible ansible 4096 Jul 27 17:45 ./
+drwxrwxr-x 13 ansible ansible 4096 Jul 27 17:45 ../
+-rwxrwxr-x  1 ansible ansible   99 Jul 27 17:45 ansible.cfg*
+drwxrwxr-x  2 ansible ansible 4096 Jul 27 17:45 group_vars/
+drwxrwxr-x  2 ansible ansible 4096 Jul 27 17:45 host_vars/
+-rwxrwxr-x  1 ansible ansible   95 Jul 27 17:45 hosts*
+-rwxrwxr-x  1 ansible ansible  624 Jul 27 17:45 jinja2_playbook.yaml*
+-rwxrwxr-x  1 ansible ansible 2298 Jul 27 17:45 template.j2*
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Templating with Jinja2/11$ 
+
+ansible-playbook jinja2_playbook.yaml 
+
+
+
+
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Introduction/Templating with Jinja2/11$ ssh root@centos1
+root@centos1
+[root@centos1 tmp]# ls
+centos1_template.out
+
+cd/tmp/
+ansible@ubuntu-c:/tmp$ ll ubuntu-c_template.out 
+-rw-r--r-- 1 ansible ansible 1025 Aug  6 17:52 ubuntu-c_template.out
+
+end of templates example
+
+
+
+start roles example:
+
+ansible@ubuntu-c:~/diveintoansible/Structuring Ansible Playbooks/Using Roles$ pwd
+/home/ansible/diveintoansible/Structuring Ansible Playbooks/Using Roles
+
+nsible@ubuntu-c:~/diveintoansible/Structuring Ansible Playbooks/Using Roles$ cd 07
+ansible@ubuntu-c:~/diveintoansible/Structuring Ansible Playbooks/Using Roles/07$ ll
+total 36
+drwxrwxr-x  6 ansible ansible 4096 Jul 27 17:45 ./
+drwxrwxr-x 10 ansible ansible 4096 Jul 27 17:45 ../
+-rwxrwxr-x  1 ansible ansible  132 Jul 27 17:45 ansible.cfg*
+drwxrwxr-x  2 ansible ansible 4096 Jul 27 17:45 group_vars/
+drwxrwxr-x  2 ansible ansible 4096 Jul 27 17:45 host_vars/
+-rwxrwxr-x  1 ansible ansible   95 Jul 27 17:45 hosts*
+drwxrwxr-x  8 ansible ansible 4096 Jul 27 17:45 nginx/
+-rwxrwxr-x  1 ansible ansible  574 Jul 27 17:45 nginx_webapp_playbook.yaml*
+drwxrwxr-x 10 ansible ansible 4096 Jul 27 17:45 webapp/
+
+ansible@ubuntu-c:~/diveintoansible/Structuring Ansible Playbooks/Using Roles$ cd 08/
+ansible@ubuntu-c:~/diveintoansible/Structuring Ansible Playbooks/Using Roles/08$ ll
+total 36
+drwxrwxr-x  6 ansible ansible 4096 Jul 27 17:45 ./
+drwxrwxr-x 10 ansible ansible 4096 Jul 27 17:45 ../
+-rwxrwxr-x  1 ansible ansible  132 Jul 27 17:45 ansible.cfg*
+drwxrwxr-x  2 ansible ansible 4096 Jul 27 17:45 group_vars/
+drwxrwxr-x  2 ansible ansible 4096 Jul 27 17:45 host_vars/
+-rwxrwxr-x  1 ansible ansible   95 Jul 27 17:45 hosts*
+drwxrwxr-x  8 ansible ansible 4096 Jul 27 17:45 nginx/
+-rwxrwxr-x  1 ansible ansible  562 Jul 27 17:45 nginx_webapp_playbook.yaml*
+drwxrwxr-x 10 ansible ansible 4096 Jul 27 17:45 webapp/
+
+
+
+ansible@ubuntu-c:~/diveintoansible/Structuring Ansible Playbooks/Using Roles/08$ rm host_vars/centos1
+ansible@ubuntu-c:~/diveintoansible/Structuring Ansible Playbooks/Using Roles/08$ ansible-playbook nginx_webapp_playbook.yaml
+
+end example 2
+
+start valut example 3
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Vault$
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Vault/01$ ansible-vault ansible-vault encrypt_string --ask-vault-pass --name 'ansible_become_pass' 'password'
+
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Vault/01$ ansible-vault encrypt_string --ask-vault-pass --name 'ansible_become_pass' 'password'
+New Vault password: 
+Confirm New Vault password: 
+Encryption successful
+ansible_become_pass: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          30666264316334613730323834366638323031383737306639643962636632653963386133313966
+          6462356132646635663861643037383834613866333335300a326431636632373736386565656664
+          61653463376666316134386239663432323837316630366235383265663061326535653062633939
+          6565643633636262660a656632306466376264373563393333383631386432643832613638333831
+          3434
+
+
+ansible --ask-vault-pass  -m ping all
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Vault/01$ ansible --ask-vault-pass  -m ping all 
+Vault password: 
+ubuntu-c | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.10"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+centos1 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+centos3 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+centos2 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.9"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+ubuntu1 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.10"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+ubuntu2 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.10"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+ubuntu3 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3.10"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Vault/01$ ansible --ask-vault-pass  -m ping all 
+
+
+
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Vault/02$ ansible-vault encrypt_string --ask-vault-pass --name 'ansible_become_pass' 'password'
+New Vault password: 
+Confirm New Vault password: 
+Encryption successful
+ansible_become_pass: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          31353337336237356462653938653734313739313230323132303066613833656531323861333066
+          6164383364353763643762653166633761616432346630310a656338333833626362356266616366
+          66633734326137306537633935373839643064636363363262383864613135616639346639623831
+          6466613132613164640a316365376635626333633939643861343838633135323033336537366563
+          3965
+
+
+example 4
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Vault/02$ ansible-playbook  vault_playbook.yaml 
+
+FAILED
+
+
+
+ansible@ubuntu-c:~/diveintoansible/Ansible Playbooks, Deep Dive/Vault/02$ ansible-playbook --ask-vault-pass  vault_playbook.yaml 
+Vault password: 
+
+PLAY [linux] *****************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************************************************************************
+ok: [centos3]
+ok: [centos2]
+ok: [centos1]
+ok: [ubuntu2]
+ok: [ubuntu3]
+ok: [ubuntu1]
+
+TASK [Show external_vault_var] ***********************************************************************************************************************************************************************************
+ok: [centos1] => {
+    "external_vault_var": "Example External Vault Var"
+}
+ok: [centos2] => {
+    "external_vault_var": "Example External Vault Var"
+}
+ok: [centos3] => {
+    "external_vault_var": "Example External Vault Var"
+}
+ok: [ubuntu1] => {
+    "external_vault_var": "Example External Vault Var"
+}
+ok: [ubuntu2] => {
+    "external_vault_var": "Example External Vault Var"
+}
+ok: [ubuntu3] => {
+    "external_vault_var": "Example External Vault Var"
+}
+
+PLAY RECAP *******************************************************************************************************************************************************************************************************
+centos1                    : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+centos2                    : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+centos3                    : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+ubuntu1                    : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+ubuntu2                    : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+ubuntu3                    : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+
+
+docker-compose down
