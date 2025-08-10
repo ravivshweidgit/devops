@@ -1,0 +1,198 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+AWS CLI / boto3
+=======================
+
+
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+
+
+sudo apt install unzip
+unzip awscliv2.zip
+
+sudo ./aws/install
+
+aws --version
+
+
+https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+
+
+login to your AWS account IAM 
+
+go Users    create admin user
+
+add AdministratorAccess
+
+secutty crednaital tab -> create Access key 
+
+access key : xxxxxxxxxxxxxxxxxxxx
+secret key : xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+aws configure
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-08-01-AWS-CLI-boto-3$ aws configure
+AWS Access Key ID [None]: xxxxxxxxxxxxxxxxxxxx
+AWS Secret Access Key [None]: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Default region name [None]: il-central-1
+Default output format [None]: 
+ravivm@ravivm-N501VW:~/projects/devops/2025-08-01-AWS-CLI-boto-3$ 
+
+
+Creatin EC2 vi CLI
+
+ami-0b00c1e12b92531a8
+t3.micro
+
+https://docs.aws.amazon.com/cli/latest/reference/ec2/create-key-pair.html
+
+aws ec2 create-key-pair --key-name key-cli-01
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-08-01-AWS-CLI-boto-3$ aws ec2 create-key-pair --key-name key-cli-01
+{
+    "KeyPairId": "key-0e31800e15163ea6d",
+    "KeyName": "key-cli-01",
+    "KeyFingerprint": "eb:35:6b:f9:b1:08:11:21:01:09:8a:6e:c9:7e:a5:ea:5e:07:23:bb",
+    "KeyMaterial": "-----BEGIN RSA PRIVATE KEY-----\nMIIEogIBAAKCAQEApyp9o6fweAywwuA8uq56dAhr2H8QWIOTY6i7Oj4ZeILqYbPe\n9isHTcaJjwlkKXGYGU+pdYqpoNotEgIh2OZqE3IQhl6tbzhHYXiopSAbXfMYUKLc\nn2Kyj7v9hWmEAoB4ynql2DO5ALHxggH1n5kXcGiIAbDNck6Ij17h6xfKkQEJye28\nYn+IBp2TAH36Lbs9ggGavgFMZmvYvRyu9vIzPMGyIlIt+Vf2zXJP8N7AVn7WRETc\nZ2Z7KcvZftUzfiVUpL81l+JKbTK2ZlJum7arx+cowbZW+Ueju1IRGzYMXGus49X8\n5AIjKOfu9vbhm8sthxxRmXx7RK++aZQmISg2kQIDAQABAoIBAAyc/yfnFxTn2DqM\nEuj/G0xACmsmg0Q6gVeGtsHZR7C5KBhBKzSl4II01dJOIhmicZiPUzkEQnJZpAb0\n1Dr6f8yB0c9hu3Jl67TmFsuG1anMGuySrVT1bIW96I41fPl3WiXlBTiABpiP1Ko7\nnZ3yPjuEF6cRAR9733/559AGVomETFB5xStrgMtn6Fvp5j7i77MDsgcX9CMUD+pU\nlvOch+AtZlFbrs818DoAvKRJiF0S+Yyw/lHI6WsTqgYF3/yUsym47FJYEHF/ybub\nvDNqZ1RrpAI4ZwnFn8xAxK7kQa1xTJFsMEIEcrE51a7g5y02rbMcV/nDUsccpCEk\nZyMCpAECgYEA0skoqckmlT/dllhVl16VVUzrsglWURenXmdsfVbNVqyMM2ziQQVv\nZ4Dhtql1S53bPEb34TxImT70MJ2B3i/sGcNi7IZqKkdivAB/2gDlA3RzXPXUZH3c\n7nVF/K3mfslPVfVdM+XkxQBV9NEzS2sDXky/uvQrmcBarpHRHEDgLUECgYEAywYL\nwZ8pnrUcqpyMSvRcY9XccVYWB2uKfxPCdDDQjkBQfjQd90KpsGH/0WVTXlNPB5pK\nFNuI+6W51dUPuMhqbJvhpCstvm33kdrMHoLEQy10f6aWWbONankdRUNhb5BePdZ2\noJoPP/EmTSYYltuGERby+WqYCTOaHB+XH6ZPpVECgYAhz0JGeY1Gw0e3pdOUxAcP\n95aWqAjAWRrveYddU178WBDk7sIby9Nitrl9oxC9YESaFogMCK9cZUylv53lFaq5\nNy3W4niE745WuX3IafxR4YvfjU7UD5wwY38mWH5wN7oR/5lDicx4DOW8rxGbNz8D\nESxvwFp9/uyMs7bm4UEUAQKBgCZV+uxRuJMuUb5plxgkMjnrzRddkQVPqjQ6r/Iu\nsYLa5BggkTP6U35p0ttgTbC2/GpMGQb9OU2DSqb092YF+gqOGLpeKOIXc7MH5Jky\nSgsBT0k3VJaVj/N18S/9/C0Lzq/Qik/jJ1QEnh3dPrFlvFgHxFOSbCj4pHYBBRFF\n3y4xAoGAMEy0pu8tmnagI3tBKQbUNLzwmiwdvZgEp1/No72P2wbFF9sN2aFFTQij\nWkqPqFs0j2Hgl5r6yl/YBuMwA1hE26aS4jtCWTfvg9VFPnZmiep12c+Ng74BnfXU\nRApKxRf4RnNzdzsp6ILHKZrzivob7ehuaA+kAwMWmSbTPWMj35k=\n-----END RSA PRIVATE KEY-----"
+}
+
+create the key : 
+
+ravivm@ravivm-N501VW:~/.ssh$ cat key-cli-01.pem 
+-----BEGIN RSA PRIVATE KEY-----
+MIIEogIBAAKCAQEApyp9o6fweAywwuA8uq56dAhr2H8QWIOTY6i7Oj4ZeILqYbPe
+9isHTcaJjwlkKXGYGU+pdYqpoNotEgIh2OZqE3IQhl6tbzhHYXiopSAbXfMYUKLc
+n2Kyj7v9hWmEAoB4ynql2DO5ALHxggH1n5kXcGiIAbDNck6Ij17h6xfKkQEJye28
+Yn+IBp2TAH36Lbs9ggGavgFMZmvYvRyu9vIzPMGyIlIt+Vf2zXJP8N7AVn7WRETc
+Z2Z7KcvZftUzfiVUpL81l+JKbTK2ZlJum7arx+cowbZW+Ueju1IRGzYMXGus49X8
+5AIjKOfu9vbhm8sthxxRmXx7RK++aZQmISg2kQIDAQABAoIBAAyc/yfnFxTn2DqM
+Euj/G0xACmsmg0Q6gVeGtsHZR7C5KBhBKzSl4II01dJOIhmicZiPUzkEQnJZpAb0
+1Dr6f8yB0c9hu3Jl67TmFsuG1anMGuySrVT1bIW96I41fPl3WiXlBTiABpiP1Ko7
+nZ3yPjuEF6cRAR9733/559AGVomETFB5xStrgMtn6Fvp5j7i77MDsgcX9CMUD+pU
+lvOch+AtZlFbrs818DoAvKRJiF0S+Yyw/lHI6WsTqgYF3/yUsym47FJYEHF/ybub
+vDNqZ1RrpAI4ZwnFn8xAxK7kQa1xTJFsMEIEcrE51a7g5y02rbMcV/nDUsccpCEk
+ZyMCpAECgYEA0skoqckmlT/dllhVl16VVUzrsglWURenXmdsfVbNVqyMM2ziQQVv
+Z4Dhtql1S53bPEb34TxImT70MJ2B3i/sGcNi7IZqKkdivAB/2gDlA3RzXPXUZH3c
+7nVF/K3mfslPVfVdM+XkxQBV9NEzS2sDXky/uvQrmcBarpHRHEDgLUECgYEAywYL
+wZ8pnrUcqpyMSvRcY9XccVYWB2uKfxPCdDDQjkBQfjQd90KpsGH/0WVTXlNPB5pK
+FNuI+6W51dUPuMhqbJvhpCstvm33kdrMHoLEQy10f6aWWbONankdRUNhb5BePdZ2
+oJoPP/EmTSYYltuGERby+WqYCTOaHB+XH6ZPpVECgYAhz0JGeY1Gw0e3pdOUxAcP
+95aWqAjAWRrveYddU178WBDk7sIby9Nitrl9oxC9YESaFogMCK9cZUylv53lFaq5
+Ny3W4niE745WuX3IafxR4YvfjU7UD5wwY38mWH5wN7oR/5lDicx4DOW8rxGbNz8D
+ESxvwFp9/uyMs7bm4UEUAQKBgCZV+uxRuJMuUb5plxgkMjnrzRddkQVPqjQ6r/Iu
+sYLa5BggkTP6U35p0ttgTbC2/GpMGQb9OU2DSqb092YF+gqOGLpeKOIXc7MH5Jky
+SgsBT0k3VJaVj/N18S/9/C0Lzq/Qik/jJ1QEnh3dPrFlvFgHxFOSbCj4pHYBBRFF
+3y4xAoGAMEy0pu8tmnagI3tBKQbUNLzwmiwdvZgEp1/No72P2wbFF9sN2aFFTQij
+WkqPqFs0j2Hgl5r6yl/YBuMwA1hE26aS4jtCWTfvg9VFPnZmiep12c+Ng74BnfXU
+RApKxRf4RnNzdzsp6ILHKZrzivob7ehuaA+kAwMWmSbTPWMj35k=
+-----END RSA PRIVATE KEY-----
+ravivm@ravivm-N501VW:~/.ssh$ 
+
+
+
+
+https://docs.aws.amazon.com/cli/latest/reference/ec2/create-security-group.html
+
+aws ec2 create-security-group --group-name sec-grp-cli-01 --description "My security group created via CLI"
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-08-01-AWS-CLI-boto-3$ aws ec2 create-security-group --group-name sec-grp-cli-01 --description "My security group created via CLI"
+{
+    "GroupId": "sg-0a4bbf87c1c16d60c",
+    "SecurityGroupArn": "arn:aws:ec2:il-central-1:266833220666:security-group/sg-0a4bbf87c1c16d60c"
+}
+
+now you can check AWS console : Security Groups , Key Pairs you can see the created tesourcses.
+
+
+https://docs.aws.amazon.com/cli/v1/userguide/cli-services-ec2-instances.html
+
+aws ec2 run-instances --image-id ami-xxxxxxxx --count 1 --instance-type t2.micro --key-name MyKeyPair --security-group-ids sg-903004f8 --subnet-id subnet-6e7f829e
+
+aws ec2 run-instances --image-id ami-0b00c1e12b92531a8 --count 1 --instance-type t3.micro --key-name key-cli-01 --security-group-ids sg-0a4bbf87c1c16d60c
+
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-08-01-AWS-CLI-boto-3$ aws ec2 run-instances --image-id ami-0b00c1e12b92531a8 --count 1 --instance-type t3.micro --key-name key-cli-01 --security-group-ids sg-0a4bbf87c1c16d60c
+
+
+go security groups -> sec-grp-cli-01 - > edit inbound rules -> SSH / MyIP -> save rules
+
+copy the connect command from console
+
+ssh -i "key-cli-01.pem" ec2-user@ec2-51-17-251-97.il-central-1.compute.amazonaws.com
+
+ravivm@ravivm-N501VW:~/.ssh$ ssh -i "key-cli-01.pem" ec2-user@ec2-51-17-251-97.il-central-1.compute.amazonaws.com
+   ,     #_
+   ~\_  ####_        Amazon Linux 2023
+  ~~  \_#####\
+  ~~     \###|
+  ~~       \#/ ___   https://aws.amazon.com/linux/amazon-linux-2023
+   ~~       V~' '->
+    ~~~         /
+      ~~._.   _/
+         _/ _/
+       _/m/'
+[ec2-user@ip-172-31-10-197 ~]$ key-cli-01
+
+
+BOTO-3
+==================
+
+create dir boto3
+
+python3 -m venv venv
+source venv/bin/activate
+pip install boto3
+pip list | grep boto3
+
+When you are finished working, you can exit the virtual environment by running:
+deactivate
+
+
+https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/service-resource/create_instances.html
+
+
+import boto3
+
+# Initialize the EC2 client
+# Ensure your AWS credentials are configured (e.g., via AWS CLI or environment variables)
+ec2_client = boto3.client('ec2') # Replace with your desired region
+
+try:
+    response = ec2_client.run_instances(
+        ImageId='ami-0b00c1e12b92531a8',  # Replace with a valid AMI ID for your region
+        MinCount=1,
+        MaxCount=1,
+        InstanceType='t3.micro',
+        KeyName='key-cli-01',  # Replace with an existing EC2 key pair name
+        SecurityGroupIds=[
+            'sg-0a4bbf87c1c16d60c',  # Replace with your security group ID
+        ],
+        TagSpecifications=[
+            {
+                'ResourceType': 'instance',
+                'Tags': [
+                    {
+                        'Key': 'Name',
+                        'Value': 'MyBoto3Instance'
+                    },
+                ]
+            },
+        ]
+    )
+
+    for instance in response['Instances']:
+        print(f"Launched EC2 Instance with ID: {instance['InstanceId']}")
+
+except Exception as e:
+    print(f"Error launching EC2 instance: {e}")
+
+
+
+
+(venv) ravivm@ravivm-N501VW:~/projects/devops/2025-08-01-AWS-CLI-boto-3/boto3$ python3 ec2-create.py 
+Launched EC2 Instance with ID: i-05157ca20e83e730c
+
+
+ssh -i "key-cli-01.pem" ec2-user@ec2-51-17-251-97.il-central-1.compute.amazonaws.com
+
