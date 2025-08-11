@@ -47,36 +47,60 @@ Bastion      NAT Instance
 ## 📋 Prerequisites
 
 1. **AWS Account**: Active AWS account with appropriate permissions
-2. **AWS CLI**: Installed and configured with credentials
-3. **Python 3.7+**: Python environment with pip
+2. **AWS CLI**: Setup script will install and configure automatically
+3. **Python 3.7+**: Python environment with pip (setup script will check compatibility)
 4. **IAM Permissions**: User/role with permissions for:
    - EC2 (full access)
    - IAM (for creating roles and policies)
    - VPC (full access)
+   
+   The setup script will check if your credentials have sufficient permissions.
 
 ## 🛠️ Installation
 
-1. **Clone or download the project files**
+### Automated Setup (Recommended)
 
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Use the provided setup script for the easiest installation:
 
-3. **Configure AWS credentials**:
-   ```bash
-   aws configure
-   ```
-   Enter your AWS Access Key ID, Secret Access Key, default region, and output format.
+**📖 For advanced users who prefer manual setup, see `README-MANUAL-SETUP.md`**
+
+```bash
+# Basic setup with virtual environment
+./setup.sh
+
+# Check prerequisites only
+./setup.sh --check-only
+```
+
+The setup script will:
+- Check Python version (3.7+ required)
+- Verify AWS CLI installation (or install automatically if missing)
+- Configure AWS credentials (interactive or from aws.cfg file)
+- Create virtual environment for dependency isolation
+- Install Python dependencies in virtual environment
+
+**📖 For advanced users who prefer manual setup, see `README-MANUAL-SETUP.md`**
+
+
 
 ## 🎯 Usage
 
 ### Quick Start
 
-Run the complete VPC setup:
-```bash
-python3 vpc_automation.py
-```
+1. **Setup the environment** (if not done already):
+   ```bash
+   ./setup.sh
+   ```
+
+2. **Run the complete VPC automation lab**:
+   ```bash
+   # Option A: Using the wrapper script (recommended)
+   ./run_vpc_automation.sh
+   
+   # Option B: Manual activation and run
+   source venv/bin/activate
+   python3 vpc_automation.py
+   ```
 
 ### Cleanup
 
@@ -85,16 +109,23 @@ Remove all created resources:
 python3 cleanup.py
 ```
 
+
+
 ## 📁 Project Structure
 
 ```
 boto3-ex/
 ├── vpc_automation.py      # Main automation script
+├── run_vpc_automation.sh # Wrapper script (activates venv and runs automation)
 ├── cleanup.py            # Cleanup script
 ├── test_connection.py    # Connectivity testing script
 ├── config.py             # Configuration file
 ├── requirements.txt      # Python dependencies
 ├── setup.sh              # Setup script
+
+├── aws.cfg               # AWS credentials (create manually)
+├── AWS-SETUP-GUIDE.md   # Detailed AWS credentials setup guide
+├── README-MANUAL-SETUP.md # Manual setup guide for advanced users
 ├── README.md            # This file
 ├── app.log              # Log file (created during execution)
 ├── key01.pem            # Generated SSH key (after first run)
@@ -221,25 +252,39 @@ grep "VPC created" app.log
 
 ### Common Issues
 
-1. **Authentication Errors**:
+1. **Externally Managed Environment Error**:
+   ```bash
+   # Error: externally-managed-environment
+   # Solution: Use virtual environment
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+2. **Authentication Errors**:
    ```bash
    aws sts get-caller-identity
    aws configure
    ```
 
-2. **Permission Denied**:
+3. **Permission Denied**:
    - Check IAM permissions
    - Ensure user has EC2, VPC, and IAM access
 
-3. **Key File Permissions**:
+4. **Key File Permissions**:
    ```bash
    chmod 400 key01.pem
    ```
 
-4. **Instance Not Starting**:
+5. **Instance Not Starting**:
    - Check security groups
    - Verify subnet configuration
    - Review CloudWatch logs
+
+6. **Setup Script Permission Denied**:
+   ```bash
+   chmod +x setup.sh
+   ```
 
 ### Debug Mode
 
@@ -267,9 +312,19 @@ This project is for educational purposes. Use at your own risk and ensure compli
 ## ⚡ Quick Commands
 
 ```bash
-# Setup
+# Setup (recommended)
+./setup.sh
+source venv/bin/activate
+
+
+
+# Manual setup
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 aws configure
+
+# Run automation
 python3 vpc_automation.py
 
 # Cleanup

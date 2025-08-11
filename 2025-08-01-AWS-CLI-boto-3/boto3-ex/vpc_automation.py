@@ -127,8 +127,6 @@ class VPCAutomation:
             # Create VPC
             vpc_response = self.ec2_client.create_vpc(
                 CidrBlock=self.vpc_cidr,
-                EnableDnsHostnames=True,
-                EnableDnsSupport=True,
                 TagSpecifications=[
                     {
                         'ResourceType': 'vpc',
@@ -142,6 +140,18 @@ class VPCAutomation:
             self.vpc_id = vpc_response['Vpc']['VpcId']
             logger.info(f"VPC created successfully: {self.vpc_id}")
             self.print_status(f"VPC created: {self.vpc_id}", "SUCCESS")
+            
+            # Enable DNS hostnames and DNS support
+            self.ec2_client.modify_vpc_attribute(
+                VpcId=self.vpc_id,
+                EnableDnsHostnames={'Value': True}
+            )
+            self.ec2_client.modify_vpc_attribute(
+                VpcId=self.vpc_id,
+                EnableDnsSupport={'Value': True}
+            )
+            logger.info("DNS hostnames and DNS support enabled for VPC")
+            self.print_status("DNS hostnames and DNS support enabled", "SUCCESS")
             
             # Create Internet Gateway
             igw_response = self.ec2_client.create_internet_gateway(
@@ -191,7 +201,6 @@ class VPCAutomation:
                 VpcId=self.vpc_id,
                 CidrBlock=self.public_subnet_cidr,
                 AvailabilityZone=az,
-                MapPublicIpOnLaunch=True,
                 TagSpecifications=[
                     {
                         'ResourceType': 'subnet',
@@ -206,12 +215,19 @@ class VPCAutomation:
             logger.info(f"Public subnet created: {self.public_subnet_id} in AZ {az}")
             self.print_status(f"Public subnet created: {self.public_subnet_id}", "SUCCESS")
             
+            # Enable auto-assign public IP for public subnet
+            self.ec2_client.modify_subnet_attribute(
+                SubnetId=self.public_subnet_id,
+                MapPublicIpOnLaunch={'Value': True}
+            )
+            logger.info(f"Auto-assign public IP enabled for public subnet {self.public_subnet_id}")
+            self.print_status("Auto-assign public IP enabled for public subnet", "SUCCESS")
+            
             # Create private subnet
             private_subnet_response = self.ec2_client.create_subnet(
                 VpcId=self.vpc_id,
                 CidrBlock=self.private_subnet_cidr,
                 AvailabilityZone=az,
-                MapPublicIpOnLaunch=False,
                 TagSpecifications=[
                     {
                         'ResourceType': 'subnet',
@@ -225,6 +241,14 @@ class VPCAutomation:
             self.private_subnet_id = private_subnet_response['Subnet']['SubnetId']
             logger.info(f"Private subnet created: {self.private_subnet_id} in AZ {az}")
             self.print_status(f"Private subnet created: {self.private_subnet_id}", "SUCCESS")
+            
+            # Disable auto-assign public IP for private subnet
+            self.ec2_client.modify_subnet_attribute(
+                SubnetId=self.private_subnet_id,
+                MapPublicIpOnLaunch={'Value': False}
+            )
+            logger.info(f"Auto-assign public IP disabled for private subnet {self.private_subnet_id}")
+            self.print_status("Auto-assign public IP disabled for private subnet", "SUCCESS")
             
             return True
             
@@ -484,7 +508,7 @@ class VPCAutomation:
                 response = self.ec2_client.describe_images(
                     Owners=['amazon'],
                     Filters=[
-                        {'Name': 'name', 'Values': ['amzn2-ami-hvm-*-x86_64-gp2']},
+                        {'Name': 'name', 'Values': ['amzn2-ami-hvm-*-arm64-gp2']},
                         {'Name': 'state', 'Values': ['available']}
                     ]
                 )
@@ -504,11 +528,11 @@ class VPCAutomation:
             self.print_status("Creating bastion host...")
             logger.info("Starting bastion host creation")
             
-            # Get latest Amazon Linux 2 AMI
+            # Get latest Amazon Linux 2 AMI for ARM64 (Graviton)
             response = self.ec2_client.describe_images(
                 Owners=['amazon'],
                 Filters=[
-                    {'Name': 'name', 'Values': ['amzn2-ami-hvm-*-x86_64-gp2']},
+                    {'Name': 'name', 'Values': ['amzn2-ami-hvm-*-arm64-gp2']},
                     {'Name': 'state', 'Values': ['available']}
                 ]
             )
@@ -520,7 +544,7 @@ class VPCAutomation:
                 ImageId=ami_id,
                 MinCount=1,
                 MaxCount=1,
-                InstanceType='t2.micro',
+                InstanceType='t4g.nano',
                 KeyName=self.key_name,
                 SecurityGroupIds=[self.bastion_sg_id],
                 SubnetId=self.public_subnet_id,
@@ -563,15 +587,37 @@ class VPCAutomation:
             if not nat_ami:
                 return False
             
-            # Launch NAT instance
+            # Create user data script for NAT configuration
+            user_data_script = """#!/bin/bash
+# Enable IP forwarding
+echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+
+# Make IP forwarding persistent
+echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.conf
+
+# Add NAT iptables rule
+sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+# Save iptables rules (Amazon Linux 2)
+sudo /usr/libexec/iptables/iptables.init save
+
+# Test internet connectivity
+ping -c 1 google.com > /dev/null 2>&1
+
+# Log configuration
+echo "NAT instance configured successfully" >> /var/log/cloud-init-output.log
+"""
+            
+            # Launch NAT instance with user data
             instance_response = self.ec2_client.run_instances(
                 ImageId=nat_ami,
                 MinCount=1,
                 MaxCount=1,
-                InstanceType='t2.micro',
+                InstanceType='t4g.nano',
                 KeyName=self.key_name,
                 SecurityGroupIds=[self.nat_sg_id],
                 SubnetId=self.public_subnet_id,
+                UserData=user_data_script,
                 TagSpecifications=[
                     {
                         'ResourceType': 'instance',
@@ -605,6 +651,10 @@ class VPCAutomation:
                 )
                 logger.info(f"NAT route added to private route table {self.private_route_table_id}")
                 self.print_status("NAT route added to private route table", "SUCCESS")
+                
+                # NAT instance configured via user data during launch
+                logger.info("NAT instance configured via user data")
+                self.print_status("NAT instance configured for IP forwarding", "SUCCESS")
                 return True
             else:
                 return False
@@ -615,17 +665,19 @@ class VPCAutomation:
             self.print_status(error_msg, "ERROR")
             return False
     
+
+    
     def create_private_instance(self):
         """Create private instance"""
         try:
             self.print_status("Creating private instance...")
             logger.info("Starting private instance creation")
             
-            # Get latest Amazon Linux 2 AMI
+            # Get latest Amazon Linux 2 AMI for ARM64 (Graviton)
             response = self.ec2_client.describe_images(
                 Owners=['amazon'],
                 Filters=[
-                    {'Name': 'name', 'Values': ['amzn2-ami-hvm-*-x86_64-gp2']},
+                    {'Name': 'name', 'Values': ['amzn2-ami-hvm-*-arm64-gp2']},
                     {'Name': 'state', 'Values': ['available']}
                 ]
             )
@@ -637,7 +689,7 @@ class VPCAutomation:
                 ImageId=ami_id,
                 MinCount=1,
                 MaxCount=1,
-                InstanceType='t2.micro',
+                InstanceType='t4g.nano',
                 KeyName=self.key_name,
                 SecurityGroupIds=[self.private_sg_id],
                 SubnetId=self.private_subnet_id,
@@ -754,7 +806,7 @@ class VPCAutomation:
             logger.info(f"Private instance {self.private_instance_id} stopped")
             
             # Attach IAM role
-            self.ec2_client.modify_instance_attribute(
+            self.ec2_client.associate_iam_instance_profile(
                 InstanceId=self.private_instance_id,
                 IamInstanceProfile={'Name': 'basic-ssm'}
             )
@@ -815,11 +867,105 @@ class VPCAutomation:
                         print(f"  SSM Session Manager: Available through AWS Console")
             
             print(f"\n{Fore.GREEN}✅ VPC Lab setup completed successfully!{Style.RESET_ALL}")
-            print(f"\n{Fore.CYAN}Next Steps:{Style.RESET_ALL}")
-            print("1. Connect to bastion host using the SSH command above")
-            print("2. Copy your private key to the bastion host")
-            print("3. SSH to private instance through bastion")
-            print("4. Or use AWS Systems Manager Session Manager for direct access")
+            
+            # Store IP addresses for CLI commands
+            bastion_public_ip = None
+            private_private_ip = None
+            
+            for reservation in response['Reservations']:
+                for instance in reservation['Instances']:
+                    name = "Unknown"
+                    for tag in instance.get('Tags', []):
+                        if tag['Key'] == 'Name':
+                            name = tag['Value']
+                            break
+                    
+                    if name == 'bastion':
+                        bastion_public_ip = instance.get('PublicIpAddress', 'N/A')
+                    elif name == 'private':
+                        private_private_ip = instance.get('PrivateIpAddress', 'N/A')
+            
+            print(f"\n{Fore.CYAN}🧪 Testing Phase:{Style.RESET_ALL}")
+            print("=" * 80)
+            print(f"After successful deployment, test your VPC Security Architecture Lab:")
+            
+            if bastion_public_ip != 'N/A' and private_private_ip != 'N/A':
+                print(f"\n{Fore.YELLOW}📋 Prerequisites:{Style.RESET_ALL}")
+                print(f"# Set proper permissions on your SSH key:")
+                print(f"chmod 400 {self.key_name}.pem")
+                print(f"# Ensure you have the {self.key_name}.pem file in your current directory")
+                
+                print(f"\n{Fore.YELLOW}🔐 Method 1: SSH via Bastion Host{Style.RESET_ALL}")
+                print(f"# Step 1: Connect to bastion host")
+                print(f"ssh -i {self.key_name}.pem ec2-user@{bastion_public_ip}")
+                
+                print(f"\n# Step 2: Copy private key to bastion (from your local machine)")
+                print(f"scp -i {self.key_name}.pem {self.key_name}.pem ec2-user@{bastion_public_ip}:~/")
+                
+                print(f"\n# Step 3: SSH to private instance from bastion")
+                print(f"ssh -i {self.key_name}.pem ec2-user@{private_private_ip}")
+                
+                print(f"\n{Fore.YELLOW}🌐 Method 2: AWS Systems Manager Session Manager{Style.RESET_ALL}")
+                print(f"# Go to AWS Console → EC2 → Instances → Select private instance → Connect → Session Manager")
+                
+                print(f"\n{Fore.YELLOW}🧪 Testing Commands (run from private instance):{Style.RESET_ALL}")
+                print(f"# Test internet connectivity (NAT automatically configured):")
+                print(f"ping -c 3 google.com")
+                print(f"curl -I https://aws.amazon.com")
+                
+                print(f"\n# Test DNS resolution:")
+                print(f"nslookup aws.amazon.com")
+                
+                print(f"\n# Check instance metadata:")
+                print(f"curl http://169.254.169.254/latest/meta-data/instance-id")
+                
+                print(f"\n# Check network configuration:")
+                print(f"ip addr show")
+                print(f"route -n")
+                
+                print(f"\n{Fore.YELLOW}🔍 Security Verification:{Style.RESET_ALL}")
+                print(f"# This should FAIL (private instance not directly accessible):")
+                print(f"ssh -i {self.key_name}.pem ec2-user@{private_private_ip}")
+                
+                print(f"\n# Verify bastion can reach private instance (should work):")
+                print(f"ssh -i {self.key_name}.pem ec2-user@{private_private_ip}")
+                
+                print(f"\n{Fore.YELLOW}🚨 Troubleshooting:{Style.RESET_ALL}")
+                print(f"# If SSH fails, check key permissions:")
+                print(f"ls -la {self.key_name}.pem")
+                
+                print(f"\n# Test bastion connectivity:")
+                print(f"ping {bastion_public_ip}")
+                
+                print(f"\n# SSH with verbose output:")
+                print(f"ssh -v -i {self.key_name}.pem ec2-user@{bastion_public_ip}")
+                
+                print(f"\n# Check NAT instance connectivity (from private instance):")
+                print(f"ping 10.0.1.243")
+                
+                print(f"\n# Check route table (from private instance):")
+                print(f"route -n")
+                
+                print(f"\n{Fore.CYAN}📊 Expected Results:{Style.RESET_ALL}")
+                print("✅ Bastion host accessible via SSH")
+                print("✅ Private instance accessible via bastion")
+                print("✅ Private instance NOT directly accessible from internet")
+                print("✅ Private instance can access internet through NAT (auto-configured)")
+                print("✅ DNS resolution works from private instance")
+                print("✅ SSM Session Manager available for private instance")
+                print("✅ Security groups properly configured")
+                print("✅ Network isolation maintained")
+            
+            print(f"\n{Fore.CYAN}🎯 Learning Objectives:{Style.RESET_ALL}")
+            print("• VPC architecture and subnet design")
+            print("• Bastion host security pattern")
+            print("• NAT for private subnet internet access")
+            print("• Security groups and network isolation")
+            print("• AWS Systems Manager Session Manager")
+            print("• Least-privilege access controls")
+            
+            print(f"\n{Fore.GREEN}🎉 Your VPC Security Architecture Lab is ready for testing!{Style.RESET_ALL}")
+            print(f"Follow the commands above to verify all security and network features.")
             
             logger.info("VPC Lab setup completed successfully")
             
