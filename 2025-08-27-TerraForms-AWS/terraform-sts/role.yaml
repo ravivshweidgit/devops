@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudFormation template to create a role with superuser permissions assigned to a specific user and allowing the user to assume any role.
+
+Resources:
+  SuperuserRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt NewUser.Arn
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: VideoUserAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "*"
+                Resource: "*"
+
+  NewUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: VideoUser
+      Policies:
+        - PolicyName: AssumeAnyRolePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource: "*"
+
+Outputs:
+  SuperuserRoleArn:
+    Description: The ARN of the Videouser Role
+    Value: !GetAtt SuperuserRole.Arn
+
+  NewUserName:
+    Description: The name of the new IAM user
+    Value: !Ref NewUser

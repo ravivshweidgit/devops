@@ -1,0 +1,549 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is documenting https://learn.kodekloud.com/ labs
+
+Terra form AWS kodekloud labs
+=============================
+
+Lab: AWS CLI and IAM
+
+1/18
+From this lab onwards, we will be working with AWS services! In this lab, we will learn how to use the AWS CLI to explore and deploy IAM resources, as discussed in the previous lecture.
+
+As shown in the Lab Demonstration video, we are using LocalStack to simulate the AWS environment locally.
+
+The LocalStack service is available at http://aws:4566. Throughout this lab, we will use it by adding the following to our commands:
+
+--endpoint http://aws:4566
+
+
+2/18
+First, please explore the configuration of the AWS CLI. What is the exact version of the CLI that is installed on the iac-server?
+❯ aws --version
+aws-cli/2.18.12 Python/3.12.6 Linux/5.15.0-1083-gcp exe/x86_64.ubuntu.22
+
+2.18.12
+
+3/18
+Which command should be used to interact with Identity and Access Management (IAM) in AWS using the AWS CLI?
+
+asw iam ...
+To create a new IAM user:
+aws iam create-user --user-name <username>
+To list all IAM users:
+aws iam list-users
+To create an IAM group:
+aws iam create-group --group-name <groupname>
+To add a user to a group:
+aws iam add-user-to-group --user-name <username> --group-name <groupname>
+To create an IAM role:
+aws iam create-role --role-name <rolename> --assume-role-policy-document file://<filename>.json
+To attach a managed policy to a user:
+aws iam attach-user-policy --user-name <username> --policy-arn <policy-arn>
+
+4/18
+Which subcommand under iam can be utilized to list all users created in AWS?
+aws iam list-users
+
+5/18
+Now, let's explore how to utilize the mocking framework employed in the labs.
+Please execute the command: aws iam list-users.
+Does the command execute successfully?
+An error occurred (InvalidClientTokenId) when calling the ListUsers operation: The security token included in the request is invalid.
+
+6/18
+aws --endpoint http://aws:4566 iam list-users
+
+7/18
+
+How many IAM Users are currently listed?
+
+aws --endpoint http://aws:4566 iam list-users
+{
+    "Users": [
+        {
+            "Path": "/",
+            "UserName": "jill",
+            "UserId": "cw21ds4q6kml3pfwavzc",
+            "Arn": "arn:aws:iam::000000000000:user/jill",
+            "CreateDate": "2025-08-28T19:15:25.629000+00:00"
+        },
+        {
+            "Path": "/",
+            "UserName": "jack",
+            "UserId": "6y9p7u8j3palbpr7kk9c",
+            "Arn": "arn:aws:iam::000000000000:user/jack",
+            "CreateDate": "2025-08-28T19:15:26.645000+00:00"
+        }
+    ]
+}
+
+8/18
+Now let's add a few more users!
+
+To add new users using the AWS CLI, you need to use the following subcommand:
+aws iam create-user --user-name <username>
+
+9/18
+Create a new user called mary using the AWS CLI.
+Make sure to use the --endpoint http://aws:4566 option with the command.
+
+aws iam create-user --user-name mary --endpoint http://aws:4566
+{
+    "User": {
+        "Path": "/",
+        "UserName": "mary",
+        "UserId": "5cps9o9do9eybcj0uae1",
+        "Arn": "arn:aws:iam::000000000000:user/mary",
+        "CreateDate": "2025-08-28T19:21:15.170000+00:00"
+    }
+}
+
+10/18
+Lab: AWS CLI and IAM
+"Arn": "arn:aws:iam::000000000000:user/mary"
+
+11/18
+What is the default region that has been configured for use with the AWS CLI?
+❯ aws configure get region
+us-east-1
+
+12/18
+What is the aws_access_key_id used in the configuration?
+❯ aws configure get aws_access_key_id
+foo
+
+13/18
+What is the value of aws_secret_access_key used?
+❯ aws configure get aws_secret_access_key
+bar
+
+14/18
+Now that we have created several users, the next step is to grant them the necessary privileges.
+Let us begin with user mary. Please grant her full administrator access by utilizing the policy named AdministratorAccess.
+Utilize the subcommand attach-user-policy. The ARN for the AdministratorAccess policy is arn:aws:iam::aws:policy/AdministratorAccess.
+
+aws iam attach-user-policy --user-name mary --policy-arn arn:aws:iam::aws:policy/AdministratorAccess --endpoint http://aws:4566
+
+root in ~ on ☁️  (us-east-1) 
+❯ aws iam attach-user-policy --user-name mary --policy-arn arn:aws:iam::aws:policy/AdministratorAccess --endpoint http://aws:4566
+
+root in ~ on ☁️  (us-east-1) 
+❯ 
+
+
+15/18
+jack and jill are developers who are part of a project titled project-sapphire. Please create a new IAM Group named project-sapphire-developers.
+Use the subcommand create-group to create the group.
+
+aws iam create-group --group-name project-sapphire-developers --endpoint http://aws:4566
+
+root in ~ on ☁️  (us-east-1) 
+❯ aws iam create-group --group-name project-sapphire-developers --endpoint http://aws:4566
+{
+    "Group": {
+        "Path": "/",
+        "GroupName": "project-sapphire-developers",
+        "GroupId": "8hkt5w0irc2aeck4yth3",
+        "Arn": "arn:aws:iam::000000000000:group/project-sapphire-developers",
+        "CreateDate": "2025-08-28T19:30:51.631000+00:00"
+    }
+}
+
+
+16/18
+Add the IAM users jack and jill (who are developers) to the IAM group named project-sapphire-developers.
+Use the AWS CLI subcommand add-user-to-group to assign users to the group.
+Make sure to include the correct LocalStack endpoint in your commands.
+
+aws iam add-user-to-group --user-name jack --group-name project-sapphire-developers --endpoint http://aws:4566
+aws iam add-user-to-group --user-name jill --group-name project-sapphire-developers --endpoint http://aws:4566
+
+root in ~ on ☁️  (us-east-1) 
+❯ aws iam add-user-to-group --user-name jack --group-name project-sapphire-developers --endpoint http://aws:4566
+
+root in ~ on ☁️  (us-east-1) 
+❯ aws iam add-user-to-group --user-name jill --group-name project-sapphire-developers --endpoint http://aws:4566
+
+17/18
+What IAM privileges are granted to the users jack and jill, who are part of the group project-sapphire-developers?
+Check both:
+Permissions assigned directly to each user
+Permissions inherited from the group
+NONE as no policy was attached to the group yet
+
+18/18
+Both jack and jill need full access to EC2 services.
+To grant them this access, attach the following AWS-managed policy to their IAM group project-sapphire-developers:
+arn:aws:iam::aws:policy/AmazonEC2FullAccess
+This ensures that all users in the group receive the required permissions.
+
+aws iam attach-group-policy --group-name project-sapphire-developers --policy-arn arn:aws:iam::aws:policy/AmazonEC2FullAccess --endpoint http://aws:4566
+
+
+Lab: IAM with Terraform
+
+1/13
+In this lab, we will learn how to deploy AWS resources using Terraform with the same mocking service that we use in the AWS CLI lab.
+
+2/13
+To begin, create an IAM User named mary using Terraform. In the configuration directory located at /root/terraform-projects/IAM, create a file named iam-user.tf with the following specifications:
+Resource Type: aws_iam_user
+Resource Name: users
+Name: mary
+After creating the file, please execute the command terraform init.
+
+iam-user.tf
+resource "aws_iam_user" "users" {
+  name = "mary"
+}
+
+root in ~/terraform-projects/IAM 
+❯ terraform init
+
+Initializing the backend...
+
+Initializing provider plugins...
+- Finding latest version of hashicorp/aws...
+- Installing hashicorp/aws v6.11.0...
+- Installed hashicorp/aws v6.11.0 (signed by HashiCorp)
+
+Terraform has created a lock file .terraform.lock.hcl to record the provider
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+
+root in ~/terraform-projects/IAM via 💠 default took 10s 
+❯ 
+
+
+3/13
+Great! We now have a configuration file that includes a straightforward resource block for creating an IAM User using Terraform.
+Let’s verify that everything is set up correctly for this resource creation.
+Please execute terraform plan within this configuration.
+Did the operation succeed?
+
+root in ~/terraform-projects/IAM via 💠 default took 10s 
+❯ terraform plan
+
+Planning failed. Terraform encountered an error while generating this plan.
+╷
+│ Error: Invalid provider configuration
+│ 
+│ Provider "registry.terraform.io/hashicorp/aws" requires explicit configuration.
+│ Add a provider block to the root module and configure the provider's required
+│ arguments as described in the provider documentation.
+│ 
+╵
+╷
+│ Error: invalid AWS Region: 
+│ 
+│   with provider["registry.terraform.io/hashicorp/aws"],
+│   on <empty> line 0:
+│   (source code not available)
+
+4/13
+Why did the previous command fail?
+invalid AWS Region
+
+5/13
+Let’s do that now by writing a provider block for aws and adding the region argument to it.
+While there are other ways to set the region (such as using environment variables or the AWS CLI), in this lab, we will define it directly inside your Terraform configuration by creating a provider block.
+This approach ensures your configuration will work correctly with the mocking framework used in this lab. We will explore additional arguments needed for the mocking framework in later questions.
+
+provider "aws" {
+  region                      = "us-east-1"
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_requesting_account_id  = true
+  access_key                  = "foo"
+  secret_key                  = "bar"
+  s3_use_path_style           = true
+
+  endpoints {
+    iam = "http://aws:4566"
+  }
+}
+
+aws configure get aws_access_key_id
+foo
+
+aws configure get aws_secret_access_key
+bar
+
+
+6/13
+Create a new file named provider.tf. Within this file, add a provider block for aws. Inside this block, include a single argument called region and set its value to ca-central-1.
+Note: There is no need to execute a terraform plan or apply at this stage.
+provider "aws" {
+  region                      = "ca-central-1"
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_requesting_account_id  = true
+  access_key                  = "foo"
+  secret_key                  = "bar"
+  s3_use_path_style           = true
+
+  endpoints {
+    iam = "http://aws:4566"
+  }
+}
+
+7/13
+Run a terraform plan now. Does it work?
+root in ~/terraform-projects/IAM via 💠 default 
+❯ terraform  plan
+
+Terraform used the selected providers to generate the following execution plan.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_iam_user.users will be created
+  + resource "aws_iam_user" "users" {
+      + arn           = (known after apply)
+      + force_destroy = false
+      + id            = (known after apply)
+      + name          = "mary"
+      + path          = "/"
+      + tags_all      = (known after apply)
+      + unique_id     = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+────────────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't guarantee
+to take exactly these actions if you run "terraform apply" now.
+
+root in ~/terraform-projects/IAM via 💠 default took 25s 
+❯ 
+
+8/13
+Since we are utilizing the mocking framework, the credentials configured using aws configure (stored in the file /root/.aws/credentials) are not functional in their current state. We have updated the provider.tf file with additional arguments to ensure proper functionality. Please review the changes.
+The endpoint argument functions similarly to the one utilized in the AWS CLI, where we specified --endpoint http://aws:4566. In this instance, it has been configured to operate with the IAM service.
+Please be aware that these additional configurations are not necessary when interacting directly with AWS Cloud. They are required only for the lab environment, as it employs an AWS mock framework.
+
+provider "aws" {
+  region                      = "us-east-1"
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+
+  endpoints {
+    iam                       = "http://aws:4566"
+  }
+}
+
+
+9/13
+Now, Execute a terraform plan command followed by a terraform apply command in the initialized working directory.
+root in ~/terraform-projects/IAM via 💠 default took 25s 
+❯ terraform  plan
+
+Terraform used the selected providers to generate the following execution plan.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_iam_user.users will be created
+  + resource "aws_iam_user" "users" {
+      + arn           = (known after apply)
+      + force_destroy = false
+      + id            = (known after apply)
+      + name          = "mary"
+      + path          = "/"
+      + tags_all      = (known after apply)
+      + unique_id     = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+────────────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't guarantee
+to take exactly these actions if you run "terraform apply" now.
+
+root in ~/terraform-projects/IAM via 💠 default took 23s 
+❯ terraform  apply
+
+Terraform used the selected providers to generate the following execution plan.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_iam_user.users will be created
+  + resource "aws_iam_user" "users" {
+      + arn           = (known after apply)
+      + force_destroy = false
+      + id            = (known after apply)
+      + name          = "mary"
+      + path          = "/"
+      + tags_all      = (known after apply)
+      + unique_id     = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+Do you want to perform these actions?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+aws_iam_user.users: Creating...
+aws_iam_user.users: Creation complete after 0s [id=mary]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+root in ~/terraform-projects/IAM via 💠 default took 36s 
+
+10/13
+Great! We have added one user named mary. However, there are five more individuals who require access to the AWS Account for project_sapphire.
+Please utilize the count meta-argument along with the newly created variables.tf file in the configuration directory to create these additional users.
+Inspect the newly created variables.tf file and answer the subsequent questions.
+variable "project-sapphire-users" {
+     type = list(string)
+     default = [ "mary", "jack", "jill", "mack", "buzz", "mater"]
+}
+Based on the provided variables.tf file, here are the answers to the implicit questions about its contents and purpose:
+Variable Name: The variable is named "project-sapphire-users".
+Variable Type: The variable's type is a list(string), which means it is a list of string values.
+Default Value: The variable has a default value, which is a list of six user names: "mary", "jack", "jill", "mack", "buzz", and "mater".
+To use this variable to create all six users, you would need to modify your iam-user.tf file. You can use a for_each or count loop with the aws_iam_user resource to iterate over the list of user names from the variable.
+Using the count meta-argument, your iam-user.tf file would look like this:
+Terraform
+resource "aws_iam_user" "users" {
+  count = length(var.project-sapphire-users)
+  name  = var.project-sapphire-users[count.index]
+}
+
+11/13
+What is the name of the variable that has been added to the variables.tf file?
+project-sapphire-users
+
+12/13
+What is the data type used for the variable called project-sapphire-users?
+list(string)
+
+13/13
+Now, update the iam-user.tf file to use the count meta-argument to loop through the project-sapphire-users variable and create all the users in the list.
+You may want to use the length function to get the length of the list while defining the count.
+After updating the file, run the following commands to apply your configuration if working directory is already initalized:
+resource "aws_iam_user" "users" {
+  count = length(var.project-sapphire-users)
+  name  = var.project-sapphire-users[count.index]
+}
+
+root in ~/terraform-projects/IAM via 💠 default 
+❯ terraform apply
+aws_iam_user.users[0]: Refreshing state... [id=mary]
+
+Terraform used the selected providers to generate the following execution plan.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_iam_user.users has moved to aws_iam_user.users[0]
+    resource "aws_iam_user" "users" {
+        id            = "mary"
+        name          = "mary"
+        tags          = {}
+        # (5 unchanged attributes hidden)
+    }
+
+  # aws_iam_user.users[1] will be created
+  + resource "aws_iam_user" "users" {
+      + arn           = (known after apply)
+      + force_destroy = false
+      + id            = (known after apply)
+      + name          = "jack"
+      + path          = "/"
+      + tags_all      = (known after apply)
+      + unique_id     = (known after apply)
+    }
+
+  # aws_iam_user.users[2] will be created
+  + resource "aws_iam_user" "users" {
+      + arn           = (known after apply)
+      + force_destroy = false
+      + id            = (known after apply)
+      + name          = "jill"
+      + path          = "/"
+      + tags_all      = (known after apply)
+      + unique_id     = (known after apply)
+    }
+
+  # aws_iam_user.users[3] will be created
+  + resource "aws_iam_user" "users" {
+      + arn           = (known after apply)
+      + force_destroy = false
+      + id            = (known after apply)
+      + name          = "mack"
+      + path          = "/"
+      + tags_all      = (known after apply)
+      + unique_id     = (known after apply)
+    }
+
+  # aws_iam_user.users[4] will be created
+  + resource "aws_iam_user" "users" {
+      + arn           = (known after apply)
+      + force_destroy = false
+      + id            = (known after apply)
+      + name          = "buzz"
+      + path          = "/"
+      + tags_all      = (known after apply)
+      + unique_id     = (known after apply)
+    }
+
+  # aws_iam_user.users[5] will be created
+  + resource "aws_iam_user" "users" {
+      + arn           = (known after apply)
+      + force_destroy = false
+      + id            = (known after apply)
+      + name          = "mater"
+      + path          = "/"
+      + tags_all      = (known after apply)
+      + unique_id     = (known after apply)
+    }
+
+Plan: 5 to add, 0 to change, 0 to destroy.
+
+Do you want to perform these actions?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+aws_iam_user.users[5]: Creating...
+aws_iam_user.users[1]: Creating...
+aws_iam_user.users[4]: Creating...
+aws_iam_user.users[3]: Creating...
+aws_iam_user.users[2]: Creating...
+aws_iam_user.users[4]: Creation complete after 0s [id=buzz]
+aws_iam_user.users[3]: Creation complete after 0s [id=mack]
+aws_iam_user.users[1]: Creation complete after 0s [id=jack]
+aws_iam_user.users[2]: Creation complete after 0s [id=jill]
+aws_iam_user.users[5]: Creation complete after 0s [id=mater]
+
+Apply complete! Resources: 5 added, 0 changed, 0 destroyed.
+
+root in ~/terraform-projects/IAM via 💠 default took 36s 
+
+End kode cloude labs
+
+Getting out of kode cloude
