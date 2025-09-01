@@ -1,0 +1,173 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is documenting https://learn.kodekloud.com/ labs
+
+Terra form AWS kodekloud lab s3
+===============================
+
+
+1 / 14
+In this lab, we will work on configuration directories that have been created under /root/terraform-projects/S3-Buckets.
+
+2 / 14
+Let's first inspect the configuration files in the directory called MCU.
+What is the AWS region configured for use in the provider block? (Assuming we do not pass in additional variables during command execution)
+
+main.tf
+resource "aws_s3_bucket" "marvel-cinematic-universe" {
+  bucket = "mcu-202011121359"
+
+}
+
+
+provider.tf
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "4.15.0"
+    }
+  }
+}
+
+provider "aws" {
+  region                      = var.region
+  s3_use_path_style = true
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+
+  endpoints {
+    s3                       = "http://aws:4566"
+  }
+}
+
+
+variables.tf
+variable "region" {
+}
+
+terraform.tfvars
+region = "us-east-1"
+
+The answer is us-east-1
+
+3 / 14
+There is a resource block configured in the main.tf file in this configuration directory. What is the resource name that will be provisioned when we run terraform apply?
+
+resource "aws_s3_bucket" "marvel-cinematic-universe" {
+  bucket = "mcu-202011121359"
+
+}
+
+answer marvel-cinematic-universe
+
+4 / 14
+What is the current state of this configuration directory?
+answer : since terraform.tfstate exists, resources provisioned(after apply)
+
+5 / 14
+What is the name of the s3 bucket that has been created by this configuration?
+
+resource "aws_s3_bucket" "marvel-cinematic-universe" {
+  bucket = "mcu-202011121359"
+
+}
+
+answer : bucket = "mcu-202011121359"
+
+6 / 14
+What is the DNS domain name that is created for this bucket?
+
+terraform state show aws_s3_bucket.marvel-cinematic-universe
+root in terraform-projects/S3-Buckets/MCU via 💠 default on ☁️  (us-east-1) took 2s 
+❯ terraform state show aws_s3_bucket.marvel-cinematic-universe | grep domain
+    bucket_domain_name          = "mcu-202011121359.s3.amazonaws.com"
+    bucket_regional_domain_name = "mcu-202011121359.s3.amazonaws.com"
+
+root in terraform-projects/S3-Buckets/MCU via 💠 default on ☁️  (us-east-1) 
+❯ terraform show -json | jq '.values.root_module.resources[] | select(.address=="aws_s3_bucket.marvel-cinematic-universe") | .values.bucket_domain_name'
+"mcu-202011121359.s3.amazonaws.com"
+
+7 / 14
+Now, let's move on and work on a different configuration directory called DC.
+
+8 / 14
+The main.tf file is empty. Use it to create a new S3 with the following specifications:
+resource name: dc_bucket
+bucket name: dc_is_better_than_marvel
+
+
+Once the resource block is complete, run a terraform init, plan and apply to try and create the bucket.
+
+main.tf
+resource "aws_s3_bucket" "dc_bucket" {
+  bucket = "dc_is_better_than_marvel"
+}
+
+terraform apply :
+aws_s3_bucket.dc_bucket: Creating...
+╷
+│ Error: error creating S3 Bucket (dc_is_better_than_marvel): InvalidBucketName: The specified bucket is not valid.
+│       status code: 400, request id: 4eedc02e-2904-4c28-b7e2-e9261d59d0b6, host id: s9lzHYrFp76ZVxRcpX9+5cjAnEH2ROuNkd2BHfIa6UkFVdtjf5mKR3/eTPFvsiP/XV/VLi31234=
+│ 
+│   with aws_s3_bucket.dc_bucket,
+│   on main.tf line 1, in resource "aws_s3_bucket" "dc_bucket":
+│    1: resource "aws_s3_bucket" "dc_bucket" {
+
+
+9 / 14
+Why did the terraform apply command fail?
+answer : Invalid Bucket Name
+
+
+10 / 14
+That's right! The bucket name we used does not conform to a DNS Name standard as it uses underscores.
+
+11 / 14
+Let's fix that now and change the bucket name so that it uses dashes (-) instead of underscore(_).
+
+resource name: dc_bucket
+bucket name: dc-is-better-than-marvel
+
+Once the resource block is complete, run a terraform init, plan and apply to try and create the bucket.
+
+resource "aws_s3_bucket" "dc_bucket" {
+  bucket = "dc-is-better-than-marvel"
+}
+
+terrform apply log :
+aws_s3_bucket.dc_bucket: Creating...
+aws_s3_bucket.dc_bucket: Creation complete after 0s [id=dc-is-better-than-marvel]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+12 / 14
+Let's move on to the next configuration directory called Pixar.
+Same as the directory called DC, we have the provider.tf, variables.tf, terraform.tfvars and an empty main.tf file that is already created.
+Change directory to Pixar and move on to the next question.
+
+13 / 14
+We have a file called woody.jpg stored at /root that has to be uploaded to a bucket called pixar-studios-2020. This bucket already exists though and was created using the AWS CLI.
+
+14 / 14
+Let's do that now and upload this image to the s3 bucket! Update the main.tf file with the following specifications:
+
+Bucket: pixar-studios-2020
+Key: woody.jpg
+Source: /root/woody.jpg
+Use object (resource) Name: upload
+
+Once ready, proceed to run terraform init, plan and apply.
+resource "aws_s3_object" "upload" {
+  bucket = "pixar-studios-2020"
+  key    = "woody.jpg"
+  source = "/root/woody.jpg"
+}
+
+apply log :
+aws_s3_object.upload: Creating...
+aws_s3_object.upload: Creation complete after 0s [id=woody.jpg]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+
