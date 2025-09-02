@@ -1,0 +1,140 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is documenting https://learn.kodekloud.com/user/courses/udemy-labs-terraform-for-beginners
+
+Terra form AWS kodekloud Lab : Terraform State Commands
+=======================================================
+
+1 / 8
+We have created a few resources in the configuration directory /root/terraform-projects/project-anime. Inspect it.
+Which of the following resources names are not part of the terraform state?
+
+main.tf
+resource "local_file" "top10" {
+    filename = "/root/anime/top10.txt"
+    content  = "1. Naruto\n2. DragonBallZ\n3. Death Note\nFullmetal Alchemist\nOne-Punch Man\n"
+  
+}
+resource "local_file" "hall_of_fame" {
+  filename = "/root/anime/hall-of-fame.txt"
+  content = "1.Attack On Titan\n2. Naruto\n3. Bleach\n"
+
+}
+resource "local_file" "new_shows" {
+  filename = "/root/anime/new_shows.txt"
+  content = "1. Cannon Busters\n2. Last Hope\n3. Lost Song\n"
+
+}
+resource "local_file" "classics" {
+  filename = "/root/anime/classic_shows.txt"
+  content = "1. DragonBall\n"
+
+}
+
+
+root in ~/terraform-projects/project-anime via 💠 default on ☁️  (us-east-1) 
+❯ terraform state list
+local_file.classics
+local_file.hall_of_fame
+local_file.new_shows
+local_file.top10
+
+answer : super_pets is not a resource
+
+
+2 / 8
+Which command would you use to show the attributes of the resource called classics stored in the terraform state?
+
+❯ terraform state show local_file.classics
+# local_file.classics:
+resource "local_file" "classics" {
+    content              = <<-EOT
+        1. DragonBall
+    EOT
+    content_base64sha256 = "6Ity8EEWB9hY2pJUjJQsdyBi7iDtrqnHg7E0VR9KS4A="
+    content_base64sha512 = "lRKrxM4reT5okTZxIy6k/HdgLiXIJ+L1LIr2FUWcLldv44rFq/kOmiB6qOO0ny3Yl6w6C+79BdTy3TLHG0G5fg=="
+    content_md5          = "13d46e58bee23e8d0560d9cf3cef8966"
+    content_sha1         = "69f539876d8db4e6873466ab5b4d56ebf32667b2"
+    content_sha256       = "e88b72f0411607d858da92548c942c772062ee20edaea9c783b134551f4a4b80"
+    content_sha512       = "9512abc4ce2b793e68913671232ea4fc77602e25c827e2f52c8af615459c2e576fe38ac5abf90e9a207aa8e3b49f2dd897ac3a0beefd05d4f2dd32c71b41b97e"
+    directory_permission = "0777"
+    file_permission      = "0777"
+    filename             = "/root/anime/classic_shows.txt"
+    id                   = "69f539876d8db4e6873466ab5b4d56ebf32667b2"
+}
+
+
+3 / 8
+What is the value of the attribute called id that is created for the local file resource called top10?
+
+root in ~/terraform-projects/project-anime via 💠 default on ☁️  (us-east-1) 
+❯ terraform state show local_file.top10 | grep id
+    id                   = "a96174702c7d532583e312e123a216e35721021f"
+
+❯ terraform state pull | jq '.resources[] | select(.name == "top10").instances[0].attributes.id'
+"a96174702c7d532583e312e123a216e35721021f"
+
+
+4 / 8
+We no longer wish to manage the file located at /root/anime/hall-of-fame.txt by Terraform. Remove the resource responsible for this file completely from the management of terraform.
+
+❯ terraform state rm local_file.hall_of_fame
+Removed local_file.hall_of_fame
+Successfully removed 1 resource instance(s).
+
+
+5 / 8
+Now navigate to the directory /root/terraform-projects/super-pets. Just like the previous configuration directory, we have already created the resource. Inspect the configuration and identify the only resource type used.
+
+cd ../super-pets/
+❯ terraform state list
+random_pet.super_pet_1
+random_pet.super_pet_2
+
+
+6 / 8
+Within this configuration the terraform state commands are working (Try it!) but there is no terraform.tfstate file present!
+What is the reason for this behavior?
+
+terraform {
+  backend "s3" {
+    key = "terraform.tfstate"
+    region = "us-east-1"
+    bucket = "remote-state"
+    endpoint = "http://172.16.238.105:9000"
+    force_path_style = true
+
+
+    skip_credentials_validation = true
+
+    skip_metadata_api_check = true
+    skip_region_validation = true
+  }
+}
+answer : we are using remote state
+
+
+7 / 8
+What is the id of the random_pet resource called super_pet_2 in the state file?
+
+❯ terraform state show random_pet.super_pet_2 | grep id
+    id        = "Wonder-smart-gull"
+
+❯ terraform state pull | jq '.resources[] | select(.name == "super_pet_2").instances[0].attributes.id'
+"Wonder-smart-gull"
+
+
+8 / 8
+Rename the resource from super_pet_1 to ultra_pet.
+Change the name in the main.tf file as well as the state.
+
+❯ terraform state mv random_pet.super_pet_1 random_pet.ultra_pet
+Move "random_pet.super_pet_1" to "random_pet.ultra_pet"
+Successfully moved 1 object(s).
+
+main.tf
+resource "random_pet" "ultra_pet" {
+    length = var.length1
+    prefix = var.prefix1
+}
+
