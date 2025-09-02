@@ -1,0 +1,172 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is documenting https://learn.kodekloud.com/user/courses/udemy-labs-terraform-for-beginners
+
+Terra form AWS kodekloud Lab : Remote State
+===========================================
+
+
+1 / 11
+In this lab, we will work with remote terraform state files.
+We will first start with the local state and then migrate it to remote state with an S3 backend.
+The configuration directory we will work with is /root/terraform-projects/RemoteState
+
+
+variables.tf
+variable remote-state {
+    type = string
+    default = "remote"
+}
+variable local-state {
+    type = string
+    default = "local"
+}
+
+
+2 / 11
+First, create a simple configuration to create a local_file resource within the directory called RemoteState. The resource block should be created inside the main.tf file. Follow the below specifications for provisioning this resource:
+Resource Name: state
+filename: /root/<variable  local-state>
+content: "This configuration uses <variable  local-state> state"
+Use the variable called local-state in the variables.tf file which is already created for you and make use of variable interpolation syntax ${..}.
+Once the configuration is ready, run a terraform init, plan and apply.
+
+
+main.tf
+resource "local_file" "state" {
+  filename = "/root/${var.local-state}"
+  content  = "This configuration uses ${var.local-state} state"
+}
+
+
+3 / 11
+Has a state file been created after you run terraform apply?
+answer : yes
+
+4 / 11
+What is the name of the state file created for this configuration?
+answer : terraform.tfstate
+
+
+5 / 11
+Let's now move the state to a remote S3 backend. For this, we will make use of an S3 compatible storage called minio.
+Minio provides an S3-compatible API and allows us to configure the s3 backend in the same way as the actual S3 service in AWS Cloud.
+To explore minio and the S3 bucket that has been created, click on the Minio Browser tab on the top of the terminal window..
+Use the following credentials to login:
+Access Key: foofoo
+Secret Key: barbarbar
+
+6 / 11
+We have already created an s3 bucket that we will use to store the remote state. From the Minio  Browser, identify the name of this bucket. (There is only one bucket created as of now)
+answer : remote-state
+
+
+7 / 11
+Before we add the configuration for the s3 backend, let's first change the local file resource. Change the variable used to remote-state instead of local-state.
+Once done, run terraform plan and apply.
+
+main.tf
+resource "local_file" "state" {
+  filename = "/root/${var.remote-state}"
+  content  = "This configuration uses ${var.remote-state} state"
+}
+
+
+apply log:
+local_file.state: Destroying... [id=af887e99a1ab7b1fdef03e4849d3f5c99d0dc91c]
+local_file.state: Destruction complete after 0s
+local_file.state: Creating...
+local_file.state: Creation complete after 0s [id=2d48160ec09ddaa56088de1b1dc3df9f8a28ec24]
+
+Apply complete! Resources: 1 added, 0 changed, 1 destroyed.
+
+
+8 / 11
+Great! Now, let us configure the remote backend with s3. Add a terraform block in a new file called terraform.tf with the following arguments:
+bucket: remote-state
+key: terraform.tfstate
+region: us-east-1
+
+Do not run terraform init yet! Since we are making use of minio we also have to add a couple of additional arguments to get this to work!
+We will do that in the next step. When using the regular s3 service from AWS the above arguments should be sufficient to configure remote state.
+
+terraform.tf
+terraform {
+  backend "s3" {
+    bucket = "remote-state"
+    key    = "terraform.tfstate"
+    region = "us-east-1"
+  }
+}
+
+
+9 / 11
+To make the s3 backend with Minio to work, we have to add a few additional arguments. The terraform.tf file has been updated. Check it out.
+Please note that these arguments are optional and not needed when working with the regular S3 service in AWS.
+
+terraform.tf
+terraform {
+  backend "s3" {
+    key = "terraform.tfstate"
+    region = "us-east-1"
+    bucket = "remote-state"
+    endpoint = "http://172.16.238.105:9000"
+    force_path_style = true
+
+    skip_credentials_validation = true
+
+    skip_metadata_api_check = true
+    skip_region_validation = true
+  }
+}
+
+10 / 11
+Try running terraform apply, are you able to do it? If not why?
+
+apply log :
+❯ terraform apply
+╷
+│ Error: Backend initialization required, please run "terraform init"
+
+
+11 / 11
+Run terraform init in our configuration directory now.
+Once done you can proceed to delete the terraform.tfstate file from the local directory.
+From the Minio Browser, you should now be able to see the state file uploaded to the bucket called remote-state.
+Login credentials -
+Access Key: foofoo
+Secret Key: barbarbar
+
+❯ terraform init
+
+Initializing the backend...
+Do you want to copy existing state to the new backend?
+  Pre-existing state was found while migrating the previous "local" backend to the
+  newly configured "s3" backend. No existing state was found in the newly
+  configured "s3" backend. Do you want to copy this state to the new "s3"
+  backend? Enter "yes" to copy and "no" to start with an empty state.
+
+  Enter a value: yes
+
+
+Successfully configured the backend "s3"! Terraform will automatically
+use this backend unless the backend configuration changes.
+
+Initializing provider plugins...
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Using previously-installed hashicorp/local v2.5.3
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+
+root in ~/terraform-projects/RemoteState via 💠 default on ☁️  (us-east-1) took 9s 
+❯ rm terraform.tf
+
+
