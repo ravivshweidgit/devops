@@ -1,0 +1,230 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is following https://learn.kodekloud.com/user/courses/udemy-labs-terraform-for-beginners
+
+Terra form AWS kodekloud AWS EC2 and Provisioners
+==================================================
+
+1 / 15
+Navigate to the directory /root/terraform-projects/project-cerberus. We have an empty main.tf file in this directory.
+Using this configuration file write a resource block to provision a simple EC2 instance with the following specifications:
+Resource Name: cerberus
+AMI: ami-06178cf087598769c, use variable named ami
+region: eu-west-2, use variable named region
+Instance Type: m5.large, use variable named instance_type
+Once ready, run terraform init, plan and apply to provision this EC2 instance.
+
+
+main.tf 
+(empty file)
+
+install-nginx.sh
+#!/bin/bash
+sudo yum update -y
+sudo yum install nginx -y
+sudo systemctl start nginx
+
+provider.tf
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "4.15.0"
+    }
+  }
+}
+provider "aws" {
+  region                      = var.region
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+
+  endpoints {
+    ec2 = "http://aws:4566"
+  }
+}
+
+cd terraform-projects/project-cerberus/
+
+main.tf
+resource "aws_instance" "cerberus" {
+  ami = var.ami
+  instance_type = var.instance_type
+}
+
+variable "region" {
+  default = "eu-west-2"
+}
+
+variable "ami" {
+  default = "ami-06178cf087598769c"
+}
+
+variable "instance_type" {
+  default = "m5.large"
+}
+
+apply log:
+aws_instance.cerberus: Creating...
+aws_instance.cerberus: Still creating... [10s elapsed]
+aws_instance.cerberus: Creation complete after 10s [id=i-b022c9a581d7d2754]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+
+
+
+2 / 15
+Perfect! The instance has been created by terraform. To inspect the details of this instance, you can run terraform show command from the configuration directory.
+This will print the resource attributes from the state file in a human-readable format.
+
+OK
+
+
+3 / 15
+The AMI ID we have used is an RHEL 8 image in the London region that only accepts SSH-Key based authentication. However, when we created the instance, we did not make use of a key!
+Let's create a new key-pair!
+
+OK
+
+
+4 / 15
+A new SSH key pair has been created in the directory /root/terraform-projects/project-cerberus/.ssh.
+The private key is called cerberus and the public key is called cerberus.pub
+Using the public key, create a new key-pair in AWS with the following specifications:
+Resource Name: cerberus-key
+key_name: cerberus
+Use the file functions to read the public key cerberus.pub
+
+
+When ready, run a terrafom plan and apply to create this key pair.
+
+root in ~/terraform-projects/project-cerberus via 💠 default on ☁️  (us-east-1) took 18s 
+❯ ls .ssh/*
+.ssh/cerberus  .ssh/cerberus.pub
+
+main.tf added :
+resource "aws_key_pair" "cerberus-key" {
+  key_name = "cerberus"
+  public_key = file(".ssh/cerberus.pub")
+}
+
+apply log:
+aws_key_pair.cerberus-key: Creating...
+aws_key_pair.cerberus-key: Creation complete after 0s [id=cerberus]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+
+5 / 15
+Let us now configure the cerberus resource to make use of this key. Update the resource block to make use of the key called cerberus.
+Once the configuration is updated, run a terraform plan and terraform apply. This will trigger the replacement of the instance with the new one having the key-pair created in our previous step.
+
+resource "aws_instance" "cerberus" {
+  ami = var.ami
+  instance_type = var.instance_type
+  key_name = "cerberus"
+}
+
+
+apply log:
+Plan: 1 to add, 0 to change, 1 to destroy.
+
+Do you want to perform these actions?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+aws_instance.cerberus: Destroying... [id=i-b022c9a581d7d2754]
+aws_instance.cerberus: Still destroying... [id=i-b022c9a581d7d2754, 10s elapsed]
+aws_instance.cerberus: Destruction complete after 10s
+aws_instance.cerberus: Creating...
+aws_instance.cerberus: Still creating... [10s elapsed]
+aws_instance.cerberus: Creation complete after 10s [id=i-0220ee461968a832b]
+
+Apply complete! Resources: 1 added, 0 changed, 1 destroyed.
+
+
+
+6 / 15
+Let us now install nginx with EC2 instance. To do this, let's make use of the user_data argument.
+Using the file function again or by making use of the heredoc syntax, use the script called install-nginx.sh as the value for the user_data argument.
+Do not run terraform apply yet!
+
+resource "aws_instance" "cerberus" {
+  ami = var.ami
+  instance_type = var.instance_type
+  key_name = "cerberus"
+  user_data = file("./install-nginx.sh")
+}
+
+7 / 15
+What will happen if we run terraform apply now?
+answer : current server will be modified but nginx will not be installed
+
+8 / 15
+In this case, an instance will be modified, but nginx will not be installed. It is due to the fact that User data scripts only run at first boot whereas the instance modification causes a reboot.
+Let's apply the updated configuration in the next step!
+
+
+
+9 / 15
+Run terraform apply and let the EC2 instance be modified.
+
+apply log:
+Plan: 0 to add, 1 to change, 0 to destroy.
+
+Do you want to perform these actions?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+aws_instance.cerberus: Modifying... [id=i-0220ee461968a832b]
+aws_instance.cerberus: Still modifying... [id=i-0220ee461968a832b, 10s elapsed]
+aws_instance.cerberus: Still modifying... [id=i-0220ee461968a832b, 20s elapsed]
+aws_instance.cerberus: Modifications complete after 20s [id=i-0220ee461968a832b]
+
+Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
+
+10 / 15
+Where should you add a provisioner block?
+answer nested block inside resource block
+
+
+11 / 15
+Which of the following provisioners does not need a connection block defined?
+answer : local-exec
+
+12 / 15
+What is the public IPv4 address that has been allocated to this EC2 instance?
+
+❯ terraform state show aws_instance.cerberus | grep public
+    associate_public_ip_address          = true
+    public_dns                           = "ec2-54-214-152-11.eu-west-2.compute.amazonaws.com"
+    public_ip                            = "54.214.152.11"
+
+
+13 / 15
+We use the public IPv4 address to access this server. However, when this server is rebooted or recreated, this IP address would change.
+To fix this, let's create an Elastic IP Address.
+An Elastic IP address is a static IPv4 address which does not change over time.
+
+Create an Elastic IP resource with the following specifications:
+Resource Name: eip
+vpc: true
+instance: id of the EC2 instance created for resource cerberus (use a reference expression)
+create a local-exec provisioner for the eip resource and use it to print the attribute called public_dns to a file /root/cerberus_public_dns.txt on the iac-server.
+
+If unsure, refer to the documentation. Documentation tab is available at the top right.
+
+resource "aws_eip" "eip" {
+    vcp = true
+    instance = aws_instance.cerberus.id
+
+    provisioner "local-exec" {
+      command = "echo ${aws_eip.eip.public_dns} >> /root/cerberus_public_dns.txt"
+    }
+}
+
+

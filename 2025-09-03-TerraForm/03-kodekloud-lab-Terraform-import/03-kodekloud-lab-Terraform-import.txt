@@ -1,0 +1,624 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is following https://learn.kodekloud.com/user/courses/udemy-labs-terraform-for-beginners
+
+Terra form AWS kodekloud Terraform impport
+==================================================
+
+
+1 / 10
+Navigate to the directory /root/terraform-projects/project-jade. We have a few resources created using the configuration files.
+
+Inspect them first.
+
+main.tf
+resource "aws_instance" "ruby" {
+  ami           = var.ami
+  instance_type = var.instance_type
+  for_each      = var.name
+  key_name      = var.key_name
+  tags = {
+    Name = each.value
+  }
+}
+output "instances" {
+  value = aws_instance.ruby
+}
+
+
+provider.tf
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "4.15.0"
+    }
+  }
+}
+
+provider "aws" {
+  region                      = "us-east-1"
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+
+  endpoints {
+    ec2 = "http://aws:4566"
+  }
+}
+
+varaiables.tf
+variable "name" {
+  type    = set(string)
+  default = ["jade-webserver", "jade-lbr", "jade-app1", "jade-agent", "jade-app2"]
+
+}
+variable "ami" {
+  default = "ami-0c9bfc21ac5bf10eb"
+}
+variable "instance_type" {
+  default = "t2.nano"
+}
+variable "key_name" {
+  default = "jade"
+
+}
+
+cd terraform-projects/project-jade/
+
+OK
+
+
+2 / 10
+Which of the below resources is not part of this configuration?
+❯ terraform state list
+aws_instance.ruby["jade-agent"]
+aws_instance.ruby["jade-app1"]
+aws_instance.ruby["jade-app2"]
+aws_instance.ruby["jade-lbr"]
+aws_instance.ruby["jade-webserver"]
+
+3 / 10
+What is the name of the ssh key which is used by all of these instances?
+
+
+The SSH key used by all instances is jade. This is defined by the key_name variable in variables.tf.
+variable "key_name" {
+  default = "jade"
+
+}
+
+4 / 10
+Is the key pair resource created by this terraform configuration?
+NO
+
+5 / 10
+info
+That's right, the key called jade has been created using the AWS CLI.
+
+The command used to create this key is aws ec2 create-key-pair --endpoint http://aws:4566 --key-name jade --query 'KeyMaterial' --output text > /root/terraform-projects/project-jade/jade.pem.
+The private key is created in the same configuration directory we have been working on.
+
+OK
+
+
+6 / 10
+We have another EC2 instance created called jade-mw using the AWS CLI.
+Using the AWS CLI inspect this EC2 instance and find the ID that is created by it.
+Here are some of the specifications of this EC2 Instance:
+AMI: ami-082b3eca746b12a89
+Instance Type: t2.large
+Key Name: jade
+Remember the syntax to use the AWS CLI: aws command sub-command options
+Also make sure to pass in the --endpoint http://aws:4566 (As we are using the AWS test framework. This is not required to interact with actual EC2 instances)
+
+root in ~/terraform-projects/project-jade via 💠 default on ☁️  (us-east-1) 
+❯ aws ec2 describe-instances --endpoint http://aws:4566 --filters "Name=tag:Name,Values=jade-mw" --query 'Reservations[].Instances[].InstanceId'
+[
+    "i-f91fd1d818370c040"
+]
+
+
+7 / 10
+Let's manage this instance called jade-mw with Terraform! First, create an empty resource block for this instance in the main.tf file in the configuration directory /root/terraform-projects/project-jade
+Use jade-mw as the resource name.
+We will fill in the arguments for this block later.
+
+
+I have added an empty resource block for the jade-mw instance to the main.tf
+resource "aws_instance" "jade-mw" {
+}
+
+
+8 / 10
+Now, import this instance into the terraform state.
+The resource name should be the same as the one used in the previous question - jade-mw
+
+root in ~/terraform-projects/project-jade via 💠 default on ☁️  (us-east-1) 
+❯ aws ec2 describe-instances --endpoint http://aws:4566 --filters "Name=tag:Name,Values=jade-mw" --query 'Reservations[].Instances[].InstanceId'
+[
+    "i-f91fd1d818370c040"
+]
+
+terraform import aws_instance.jade-mw "i-f91fd1d818370c040"
+
+root in ~/terraform-projects/project-jade via 💠 default on ☁️  (us-east-1) 
+❯ terraform import aws_instance.jade-mw "i-f91fd1d818370c040"
+aws_instance.jade-mw: Importing from ID "i-f91fd1d818370c040"...
+aws_instance.jade-mw: Import prepared!
+  Prepared aws_instance for import
+aws_instance.jade-mw: Refreshing state... [id=i-f91fd1d818370c040]
+
+Import successful!
+
+The resources that were imported are shown above. These resources are now in
+your Terraform state and will henceforth be managed by Terraform
+
+
+9 / 10
+Great! We are nearly there. What would happen if we run terraform apply?
+If you run terraform apply at this stage, Terraform will attempt to destroy the jade-mw instance.
+
+We will get error resource varaibles not defined
+
+
+
+root in ~/terraform-projects/project-jade via 💠 default on ☁️  (us-east-1) took 2s 
+❯ terraform state show aws_instance.jade-mw | grep ami
+    ami                                  = "ami-082b3eca746b12a89"
+
+root in ~/terraform-projects/project-jade via 💠 default on ☁️  (us-east-1) 
+❯ terraform state show aws_instance.jade-mw | grep instance_type
+    instance_type                        = "t2.large"
+
+root in ~/terraform-projects/project-jade via 💠 default on ☁️  (us-east-1) 
+❯ terraform state show aws_instance.jade-mw | grep key_name
+    key_name                             = "jade"
+
+resource "aws_instance" "jade-mw" {
+  ami           = "ami-082b3eca746b12a89"
+  instance_type = "t2.large"
+  key_name      = "jade"
+  tags = {
+  Name = "jade-mw"
+  }
+}
+
+10 / 10
+Let us fix that now. Complete the resource block for jade-mw. Inspect the state to make sure all the arguments used to create this resource are defined in the resource block.
+If unsure, run terraform apply after filling in the arguments and correct them until a plan shows no changes to apply.
+Note: Do not add user_data_replace_on_change attribute to the block. This will stop appearing as a change in the plan when you adjust for all other changes.
+
+resource "aws_instance" "jade-mw" {
+  ami           = "ami-082b3eca746b12a89"
+  instance_type = "t2.large"
+  key_name      = "jade"
+  tags = {
+  Name = "jade-mw"
+  }
+}
+
+
+
+❯ terraform apply
+aws_instance.ruby["jade-agent"]: Refreshing state... [id=i-13913432d86d43b30]
+aws_instance.ruby["jade-webserver"]: Refreshing state... [id=i-ff78cb97018337d29]
+aws_instance.jade-mw: Refreshing state... [id=i-f91fd1d818370c040]
+aws_instance.ruby["jade-lbr"]: Refreshing state... [id=i-ef2bfd550607be27c]
+aws_instance.ruby["jade-app1"]: Refreshing state... [id=i-b2c1ee9747e0cd3a4]
+aws_instance.ruby["jade-app2"]: Refreshing state... [id=i-2fb782cc536c20c45]
+
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # aws_instance.jade-mw will be updated in-place
+  ~ resource "aws_instance" "jade-mw" {
+        id                                   = "i-f91fd1d818370c040"
+        tags                                 = {
+            "Name" = "jade-mw"
+        }
+      + user_data_replace_on_change          = false
+        # (26 unchanged attributes hidden)
+
+      - timeouts {}
+
+        # (2 unchanged blocks hidden)
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.
+
+Do you want to perform these actions?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+aws_instance.jade-mw: Modifying... [id=i-f91fd1d818370c040]
+aws_instance.jade-mw: Modifications complete after 0s [id=i-f91fd1d818370c040]
+
+Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
+
+Outputs:
+
+instances = {
+  "jade-agent" = {
+    "ami" = "ami-0c9bfc21ac5bf10eb"
+    "arn" = "arn:aws:ec2:us-east-1::instance/i-13913432d86d43b30"
+    "associate_public_ip_address" = true
+    "availability_zone" = "us-east-1a"
+    "capacity_reservation_specification" = tolist([])
+    "cpu_core_count" = tonumber(null)
+    "cpu_threads_per_core" = tonumber(null)
+    "credit_specification" = tolist([
+      {
+        "cpu_credits" = "standard"
+      },
+    ])
+    "disable_api_termination" = false
+    "ebs_block_device" = toset([])
+    "ebs_optimized" = false
+    "enclave_options" = tolist([])
+    "ephemeral_block_device" = toset([])
+    "get_password_data" = false
+    "hibernation" = false
+    "host_id" = tostring(null)
+    "iam_instance_profile" = ""
+    "id" = "i-13913432d86d43b30"
+    "instance_initiated_shutdown_behavior" = "stop"
+    "instance_state" = "running"
+    "instance_type" = "t2.nano"
+    "ipv6_address_count" = 0
+    "ipv6_addresses" = tolist([])
+    "key_name" = "jade"
+    "launch_template" = tolist([])
+    "maintenance_options" = tolist([])
+    "metadata_options" = tolist([])
+    "monitoring" = false
+    "network_interface" = toset([])
+    "outpost_arn" = ""
+    "password_data" = ""
+    "placement_group" = ""
+    "placement_partition_number" = tonumber(null)
+    "primary_network_interface_id" = "eni-cda324f0"
+    "private_dns" = "ip-10-246-140-79.ec2.internal"
+    "private_ip" = "10.246.140.79"
+    "public_dns" = "ec2-54-214-55-215.compute-1.amazonaws.com"
+    "public_ip" = "54.214.55.215"
+    "root_block_device" = tolist([
+      {
+        "delete_on_termination" = true
+        "device_name" = "/dev/sda1"
+        "encrypted" = false
+        "iops" = 0
+        "kms_key_id" = ""
+        "tags" = tomap({})
+        "throughput" = 0
+        "volume_id" = "vol-9b198d51"
+        "volume_size" = 8
+        "volume_type" = "gp2"
+      },
+    ])
+    "secondary_private_ips" = toset([])
+    "security_groups" = toset([])
+    "source_dest_check" = true
+    "subnet_id" = "subnet-9245d3f7"
+    "tags" = tomap({
+      "Name" = "jade-agent"
+    })
+    "tags_all" = tomap({
+      "Name" = "jade-agent"
+    })
+    "tenancy" = "default"
+    "timeouts" = null /* object */
+    "user_data" = tostring(null)
+    "user_data_base64" = tostring(null)
+    "user_data_replace_on_change" = false
+    "volume_tags" = tomap(null) /* of string */
+    "vpc_security_group_ids" = toset([])
+  }
+  "jade-app1" = {
+    "ami" = "ami-0c9bfc21ac5bf10eb"
+    "arn" = "arn:aws:ec2:us-east-1::instance/i-b2c1ee9747e0cd3a4"
+    "associate_public_ip_address" = true
+    "availability_zone" = "us-east-1a"
+    "capacity_reservation_specification" = tolist([])
+    "cpu_core_count" = tonumber(null)
+    "cpu_threads_per_core" = tonumber(null)
+    "credit_specification" = tolist([
+      {
+        "cpu_credits" = "standard"
+      },
+    ])
+    "disable_api_termination" = false
+    "ebs_block_device" = toset([])
+    "ebs_optimized" = false
+    "enclave_options" = tolist([])
+    "ephemeral_block_device" = toset([])
+    "get_password_data" = false
+    "hibernation" = false
+    "host_id" = tostring(null)
+    "iam_instance_profile" = ""
+    "id" = "i-b2c1ee9747e0cd3a4"
+    "instance_initiated_shutdown_behavior" = "stop"
+    "instance_state" = "running"
+    "instance_type" = "t2.nano"
+    "ipv6_address_count" = 0
+    "ipv6_addresses" = tolist([])
+    "key_name" = "jade"
+    "launch_template" = tolist([])
+    "maintenance_options" = tolist([])
+    "metadata_options" = tolist([])
+    "monitoring" = false
+    "network_interface" = toset([])
+    "outpost_arn" = ""
+    "password_data" = ""
+    "placement_group" = ""
+    "placement_partition_number" = tonumber(null)
+    "primary_network_interface_id" = "eni-bc7b45fc"
+    "private_dns" = "ip-10-75-185-90.ec2.internal"
+    "private_ip" = "10.75.185.90"
+    "public_dns" = "ec2-54-214-191-81.compute-1.amazonaws.com"
+    "public_ip" = "54.214.191.81"
+    "root_block_device" = tolist([
+      {
+        "delete_on_termination" = true
+        "device_name" = "/dev/sda1"
+        "encrypted" = false
+        "iops" = 0
+        "kms_key_id" = ""
+        "tags" = tomap({})
+        "throughput" = 0
+        "volume_id" = "vol-ef15324c"
+        "volume_size" = 8
+        "volume_type" = "gp2"
+      },
+    ])
+    "secondary_private_ips" = toset([])
+    "security_groups" = toset([])
+    "source_dest_check" = true
+    "subnet_id" = "subnet-9245d3f7"
+    "tags" = tomap({
+      "Name" = "jade-app1"
+    })
+    "tags_all" = tomap({
+      "Name" = "jade-app1"
+    })
+    "tenancy" = "default"
+    "timeouts" = null /* object */
+    "user_data" = tostring(null)
+    "user_data_base64" = tostring(null)
+    "user_data_replace_on_change" = false
+    "volume_tags" = tomap(null) /* of string */
+    "vpc_security_group_ids" = toset([])
+  }
+  "jade-app2" = {
+    "ami" = "ami-0c9bfc21ac5bf10eb"
+    "arn" = "arn:aws:ec2:us-east-1::instance/i-2fb782cc536c20c45"
+    "associate_public_ip_address" = true
+    "availability_zone" = "us-east-1a"
+    "capacity_reservation_specification" = tolist([])
+    "cpu_core_count" = tonumber(null)
+    "cpu_threads_per_core" = tonumber(null)
+    "credit_specification" = tolist([
+      {
+        "cpu_credits" = "standard"
+      },
+    ])
+    "disable_api_termination" = false
+    "ebs_block_device" = toset([])
+    "ebs_optimized" = false
+    "enclave_options" = tolist([])
+    "ephemeral_block_device" = toset([])
+    "get_password_data" = false
+    "hibernation" = false
+    "host_id" = tostring(null)
+    "iam_instance_profile" = ""
+    "id" = "i-2fb782cc536c20c45"
+    "instance_initiated_shutdown_behavior" = "stop"
+    "instance_state" = "running"
+    "instance_type" = "t2.nano"
+    "ipv6_address_count" = 0
+    "ipv6_addresses" = tolist([])
+    "key_name" = "jade"
+    "launch_template" = tolist([])
+    "maintenance_options" = tolist([])
+    "metadata_options" = tolist([])
+    "monitoring" = false
+    "network_interface" = toset([])
+    "outpost_arn" = ""
+    "password_data" = ""
+    "placement_group" = ""
+    "placement_partition_number" = tonumber(null)
+    "primary_network_interface_id" = "eni-3259daae"
+    "private_dns" = "ip-10-1-176-166.ec2.internal"
+    "private_ip" = "10.1.176.166"
+    "public_dns" = "ec2-54-214-157-96.compute-1.amazonaws.com"
+    "public_ip" = "54.214.157.96"
+    "root_block_device" = tolist([
+      {
+        "delete_on_termination" = true
+        "device_name" = "/dev/sda1"
+        "encrypted" = false
+        "iops" = 0
+        "kms_key_id" = ""
+        "tags" = tomap({})
+        "throughput" = 0
+        "volume_id" = "vol-cc14ead2"
+        "volume_size" = 8
+        "volume_type" = "gp2"
+      },
+    ])
+    "secondary_private_ips" = toset([])
+    "security_groups" = toset([])
+    "source_dest_check" = true
+    "subnet_id" = "subnet-9245d3f7"
+    "tags" = tomap({
+      "Name" = "jade-app2"
+    })
+    "tags_all" = tomap({
+      "Name" = "jade-app2"
+    })
+    "tenancy" = "default"
+    "timeouts" = null /* object */
+    "user_data" = tostring(null)
+    "user_data_base64" = tostring(null)
+    "user_data_replace_on_change" = false
+    "volume_tags" = tomap(null) /* of string */
+    "vpc_security_group_ids" = toset([])
+  }
+  "jade-lbr" = {
+    "ami" = "ami-0c9bfc21ac5bf10eb"
+    "arn" = "arn:aws:ec2:us-east-1::instance/i-ef2bfd550607be27c"
+    "associate_public_ip_address" = true
+    "availability_zone" = "us-east-1a"
+    "capacity_reservation_specification" = tolist([])
+    "cpu_core_count" = tonumber(null)
+    "cpu_threads_per_core" = tonumber(null)
+    "credit_specification" = tolist([
+      {
+        "cpu_credits" = "standard"
+      },
+    ])
+    "disable_api_termination" = false
+    "ebs_block_device" = toset([])
+    "ebs_optimized" = false
+    "enclave_options" = tolist([])
+    "ephemeral_block_device" = toset([])
+    "get_password_data" = false
+    "hibernation" = false
+    "host_id" = tostring(null)
+    "iam_instance_profile" = ""
+    "id" = "i-ef2bfd550607be27c"
+    "instance_initiated_shutdown_behavior" = "stop"
+    "instance_state" = "running"
+    "instance_type" = "t2.nano"
+    "ipv6_address_count" = 0
+    "ipv6_addresses" = tolist([])
+    "key_name" = "jade"
+    "launch_template" = tolist([])
+    "maintenance_options" = tolist([])
+    "metadata_options" = tolist([])
+    "monitoring" = false
+    "network_interface" = toset([])
+    "outpost_arn" = ""
+    "password_data" = ""
+    "placement_group" = ""
+    "placement_partition_number" = tonumber(null)
+    "primary_network_interface_id" = "eni-f7b7b499"
+    "private_dns" = "ip-10-2-34-87.ec2.internal"
+    "private_ip" = "10.2.34.87"
+    "public_dns" = "ec2-54-214-67-139.compute-1.amazonaws.com"
+    "public_ip" = "54.214.67.139"
+    "root_block_device" = tolist([
+      {
+        "delete_on_termination" = true
+        "device_name" = "/dev/sda1"
+        "encrypted" = false
+        "iops" = 0
+        "kms_key_id" = ""
+        "tags" = tomap({})
+        "throughput" = 0
+        "volume_id" = "vol-a46ebf66"
+        "volume_size" = 8
+        "volume_type" = "gp2"
+      },
+    ])
+    "secondary_private_ips" = toset([])
+    "security_groups" = toset([])
+    "source_dest_check" = true
+    "subnet_id" = "subnet-9245d3f7"
+    "tags" = tomap({
+      "Name" = "jade-lbr"
+    })
+    "tags_all" = tomap({
+      "Name" = "jade-lbr"
+    })
+    "tenancy" = "default"
+    "timeouts" = null /* object */
+    "user_data" = tostring(null)
+    "user_data_base64" = tostring(null)
+    "user_data_replace_on_change" = false
+    "volume_tags" = tomap(null) /* of string */
+    "vpc_security_group_ids" = toset([])
+  }
+  "jade-webserver" = {
+    "ami" = "ami-0c9bfc21ac5bf10eb"
+    "arn" = "arn:aws:ec2:us-east-1::instance/i-ff78cb97018337d29"
+    "associate_public_ip_address" = true
+    "availability_zone" = "us-east-1a"
+    "capacity_reservation_specification" = tolist([])
+    "cpu_core_count" = tonumber(null)
+    "cpu_threads_per_core" = tonumber(null)
+    "credit_specification" = tolist([
+      {
+        "cpu_credits" = "standard"
+      },
+    ])
+    "disable_api_termination" = false
+    "ebs_block_device" = toset([])
+    "ebs_optimized" = false
+    "enclave_options" = tolist([])
+    "ephemeral_block_device" = toset([])
+    "get_password_data" = false
+    "hibernation" = false
+    "host_id" = tostring(null)
+    "iam_instance_profile" = ""
+    "id" = "i-ff78cb97018337d29"
+    "instance_initiated_shutdown_behavior" = "stop"
+    "instance_state" = "running"
+    "instance_type" = "t2.nano"
+    "ipv6_address_count" = 0
+    "ipv6_addresses" = tolist([])
+    "key_name" = "jade"
+    "launch_template" = tolist([])
+    "maintenance_options" = tolist([])
+    "metadata_options" = tolist([])
+    "monitoring" = false
+    "network_interface" = toset([])
+    "outpost_arn" = ""
+    "password_data" = ""
+    "placement_group" = ""
+    "placement_partition_number" = tonumber(null)
+    "primary_network_interface_id" = "eni-15dafabc"
+    "private_dns" = "ip-10-176-55-201.ec2.internal"
+    "private_ip" = "10.176.55.201"
+    "public_dns" = "ec2-54-214-192-26.compute-1.amazonaws.com"
+    "public_ip" = "54.214.192.26"
+    "root_block_device" = tolist([
+      {
+        "delete_on_termination" = true
+        "device_name" = "/dev/sda1"
+        "encrypted" = false
+        "iops" = 0
+        "kms_key_id" = ""
+        "tags" = tomap({})
+        "throughput" = 0
+        "volume_id" = "vol-1fd4d2d6"
+        "volume_size" = 8
+        "volume_type" = "gp2"
+      },
+    ])
+    "secondary_private_ips" = toset([])
+    "security_groups" = toset([])
+    "source_dest_check" = true
+    "subnet_id" = "subnet-9245d3f7"
+    "tags" = tomap({
+      "Name" = "jade-webserver"
+    })
+    "tags_all" = tomap({
+      "Name" = "jade-webserver"
+    })
+    "tenancy" = "default"
+    "timeouts" = null /* object */
+    "user_data" = tostring(null)
+    "user_data_base64" = tostring(null)
+    "user_data_replace_on_change" = false
+    "volume_tags" = tomap(null) /* of string */
+    "vpc_security_group_ids" = toset([])
+  }
+}
+
+
+
+

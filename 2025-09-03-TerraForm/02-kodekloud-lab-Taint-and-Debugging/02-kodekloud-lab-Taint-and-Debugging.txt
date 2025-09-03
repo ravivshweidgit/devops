@@ -1,0 +1,88 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is following https://learn.kodekloud.com/user/courses/udemy-labs-terraform-for-beginners
+
+Terra form AWS kodekloud AWS Taint and debugging
+==================================================
+
+
+1 / 8
+Which environment variable should be used to export the logs to a specific path?
+If unsure, refer to the documentation. Documentation tab is available at the top right.
+TF_LOG_PATH
+
+
+2 / 8
+Can you export the debug logs from terraform just by setting TF_LOG_PATH environment variable and providing a path as the value to this variable?
+NO
+
+
+3 / 8
+We have a configuration directory called /root/terraform-projects/ProjectA. Enable logging with the log level set to ERROR and then export the logs the path /tmp/ProjectA.log.
+Once the environment variables are set, run a terraform init and apply.
+It's OK if this results in an error. Do not change any configuration files before you export the logs!
+
+cd /root/terraform-projects/ProjectA
+export TF_LOG=ERROR
+export TF_LOG_PATH=/tmp/ProjectA.log
+terraform init
+terraform apply
+
+
+apply log:
+Enter a value: yes
+
+aws_instance.ProjectA: Creating...
+╷
+│ Error: creating EC2 Instance: AuthFailure: AWS was not able to validate the provided access credentials
+│       status code: 401, request id: ae7655b3-1c10-4b3d-9927-048e3d323cf8
+│ 
+│   with aws_instance.ProjectA,
+│   on main.tf line 1, in resource "aws_instance" "ProjectA":
+│    1: resource "aws_instance" "ProjectA" {
+
+
+4 / 8
+Which Log Level provides the most details when you run terraform commands?
+answer : Trace
+
+
+5 / 8
+Now navigate to /root/terraform-projects/ProjectB. We already have a main.tf file created for provisioning an AWS EC2 instance with the tag Name: projectb_webserver.
+
+Run a terraform init and apply to provision this instance.
+
+cd ../ProjectB
+
+apply log:
+
+  Enter a value: yes
+
+aws_instance.ProjectB: Creating...
+aws_instance.ProjectB: Still creating... [10s elapsed]
+aws_instance.ProjectB: Creation complete after 10s [id=i-7204508d51cc45d9a]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+
+6 / 8
+Now, try running a terraform plan again. What is the effect?
+
+plan log
+ # aws_instance.ProjectB is tainted, so must be replaced
+Resourcsed will be replaced
+
+7 / 8
+Why is the resource called ProjectB being replaced?
+ProjectB resource is Tained
+
+
+8 / 8
+Untaint the resource called ProjectB so that the resource is not replaced any more.
+The resource is currently tainted.
+
+❯ terraform untaint aws_instance.ProjectB
+Resource instance aws_instance.ProjectB has been successfully untainted.
+
+
+
