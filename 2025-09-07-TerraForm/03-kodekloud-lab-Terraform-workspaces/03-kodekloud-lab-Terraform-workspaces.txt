@@ -1,0 +1,179 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is following https://learn.kodekloud.com/user/courses/udemy-labs-terraform-for-beginners
+
+Kodekloud Terraform workspaces
+================================
+
+
+1 / 11
+When we start off and create a configuration in terraform, what is the workspace that is created, to begin with?
+deafulat worspace
+
+
+2 / 11
+Navigate to the configuration directory /root/terraform-projects/project-sapphire. We have a few configuration files already created here. How may workspaces are created for this configuration currently?
+
+❯ terraform workspace list
+* default
+
+
+3 / 11
+Create three new workspaces called us-payroll, uk-payroll and india-payroll.
+
+root in ~/terraform-projects/project-sapphire via 💠 default on ☁️  (us-east-1) 
+❯ terraform workspace new us-payroll
+Created and switched to workspace "us-payroll"!
+
+You're now on a new, empty workspace. Workspaces isolate their state,
+so if you run "terraform plan" Terraform will not see any existing state
+for this configuration.
+
+root in ~/terraform-projects/project-sapphire via 💠 us-payroll on ☁️  (us-east-1) 
+❯ terraform workspace new uk-payroll
+Created and switched to workspace "uk-payroll"!
+
+You're now on a new, empty workspace. Workspaces isolate their state,
+so if you run "terraform plan" Terraform will not see any existing state
+for this configuration.
+
+root in ~/terraform-projects/project-sapphire via 💠 uk-payroll on ☁️  (us-east-1) 
+❯ terraform workspace new india-payroll
+Created and switched to workspace "india-payroll"!
+
+You're now on a new, empty workspace. Workspaces isolate their state,
+so if you run "terraform plan" Terraform will not see any existing state
+for this configuration.
+
+
+4 / 11
+Now, switch to the workspace called us-payroll.
+
+❯ terraform workspace select us-payroll
+Switched to workspace "us-payroll".
+
+
+5 / 11
+Where would the state file for the workspace called india-payroll be stored??
+Choose the correct path relative to the current configuration directory (/root/terraform-projects/project-sapphire)
+
+root in project-sapphire/terraform.tfstate.d/india-payroll on ☁️  (us-east-1) 
+❯ pwd
+/root/terraform-projects/project-sapphire/terraform.tfstate.d/india-payroll
+
+
+6 / 11
+Let's now write the main.tf file to make use of the same module that we saw in the terraform modules lecture.
+The project-sapphire configuration directory will be used to deploy the same payroll application stack in different regions.
+The module is located at the path /root/terraform-projects/modules/payroll-app.
+OK
+
+
+7 / 11
+Inside the configuration directory, we have already added the variables.tf and the provider.tf file. Inspect them.
+What type of variable is region?
+variable "region" {
+    type = map
+    default = {
+        "us-payroll" = "us-east-1"
+        "uk-payroll" = "eu-west-2"
+        "india-payroll" = "ap-south-1"
+    }
+
+variable "region" {
+    type = map
+    default = {
+        "us-payroll" = "us-east-1"
+        "uk-payroll" = "eu-west-2"
+        "india-payroll" = "ap-south-1"
+    }
+"india-payroll" = "ap-south-1"
+
+
+
+
+8/11
+What is the default value of the key called india-payroll for the variable region?
+"india-payroll" = "ap-south-1"
+
+
+9 / 11
+What is the default value of the key called india-payroll for the variable ami?
+"india-payroll" = "ap-south-1"
+variable "ami" {
+    type = map
+    default = {
+        "us-payroll" = "ami-24e140119877avm"
+        "uk-payroll" = "ami-35e140119877avm"
+        "india-payroll" = "ami-55140119877avm"
+    }
+}
+
+  "india-payroll" = "ami-55140119877avm"
+
+
+
+10 / 11
+Now, update the main.tf of the root module to call the child module located at /root/terraform-projects/modules/payroll-app. Adhere to the following specifications:
+
+module name: payroll_app
+This module expects two mandatory arguments:
+
+a. app_region - use the values from variable called region
+
+b. ami - use the values from the variable called ami
+The values for these two arguments should be selected based on the workspace you are on.
+
+
+For example, if on us-payroll workspace, the app_region should be us-east-1 and the ami ami-24e140119877avm OR for uk-payroll, the app_region should be eu-west-2 and the ami ami-35e140119877avm e.t.c .
+
+Once ready, run terraform init. You don't have to create(apply) the resources yet!
+Refer to the README.md file located at /root/terraform-projects/modules/payroll-app to see how to use this module.  
+
+main.tf
+module "payroll_app" {
+  source = "/root/terraform-projects/modules/payroll-app"
+
+  app_region = lookup(var.region, terraform.workspace)
+
+  ami = lookup(var.ami, terraform.workspace)
+
+}
+
+apply log:
+module.payroll_app.aws_s3_bucket.payroll_data: Creating...
+module.payroll_app.aws_dynamodb_table.payroll_db: Creating...
+module.payroll_app.aws_s3_bucket.payroll_data: Creation complete after 0s [id=us-east-1-flexit-payroll-alpha-22001c]
+module.payroll_app.aws_dynamodb_table.payroll_db: Creation complete after 6s [id=us-east-1_user_data]
+module.payroll_app.aws_instance.app_server: Creating...
+module.payroll_app.aws_instance.app_server: Still creating... [10s elapsed]
+module.payroll_app.aws_instance.app_server: Creation complete after 10s [id=i-2b048e728c8b39248]
+
+Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+
+
+
+11 / 11
+Now, using the same configuration, create the resources on all three workspaces that you created earlier!
+
+root in ~/terraform-projects/project-sapphire via 💠 us-payroll on ☁️  (us-east-1) 
+❯ terraform workspace list
+  default
+  india-payroll
+  uk-payroll
+* us-payroll
+
+❯ terraform workspace select india-payroll 
+Switched to workspace "india-payroll".
+tearraform apply
+
+root in ~/terraform-projects/project-sapphire via 💠 india-payroll on ☁️  (us-east-1) took 19s 
+❯ terraform workspace select uk-payroll 
+
+
+
+
+
+
+
+

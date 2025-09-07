@@ -1,0 +1,171 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is following https://learn.kodekloud.com/user/courses/udemy-labs-terraform-for-beginners
+
+Kodekloud lab : Terraform modules
+=================================
+
+
+1 / 11
+A configuration directory has been created at the path /root/terraform-projects/project-sapphire. Inspect the main.tf file created in this directory and answer the following questions.
+
+OK
+
+
+2 / 11
+Which configuration block is defined in the main.tf file at the moment?
+
+module "iam_iam-user" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-user"
+  version = "5.28.0"
+  # insert the 1 required variable here
+}
+
+mudule
+
+
+3 / 11
+What is the source of the module used in this configuration?
+
+source  = "terraform-aws-modules/iam/aws//modules/iam-user"
+public terrafomr registry
+
+
+4 / 11
+What is the version of the module used?
+version = "5.28.0"
+
+
+5 / 11
+How many required arguments does this module expect?
+You may need to look up the documentation to figure this one out.
+Refer: https://registry.terraform.io/modules/terraform-aws-modules/iam/aws/latest/submodules/iam-user
+
+answer : 1  argument name
+
+
+6 / 11
+Which argument is to be specified, just to create an IAM User with this module?
+You may need to look up the documentation to figure this one out.
+Refer: https://registry.terraform.io/modules/terraform-aws-modules/iam/aws/latest/submodules/iam-user
+answer : name
+
+
+7 / 11
+Now, update this module block that will allow it to create an IAM User called max. Adhere to the following requirements:
+
+Only use the module block in the main.tf file, do not add a separate resource block.
+Module Name - iam_iam-user
+Only add the single required argument at this time.
+
+
+The provider.tf and variables.tf files have been added to this configuration directory now.
+
+When ready, run a terraform init and plan. You don't have to provision the resources at this moment but you can try should you wish to!
+
+
+main:
+module "iam_iam-user"  {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-user"
+  version = "5.28.0"
+  # insert the 1 required variable here
+
+  name = "max"
+}
+
+
+
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "5.11.0"
+    }
+  }
+}
+
+provider "aws" {
+  region                      = var.region
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+  endpoints {
+    iam = "http://aws:4566"
+    ec2 = "http://aws:4566"
+    s3 = "http://aws:4566"
+  }
+}
+
+
+variable "region" {
+    default = "us-east-1"
+}
+
+
+https://registry.terraform.io/modules/terraform-aws-modules/iam/aws/5.28.0?utm_content=documentLink&utm_medium=code-server&utm_source=terraform-ls
+
+
+
+8 / 11
+How many resources are set to be created in the execution plan ?
+Inspect the output of the terraform plan command.
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+
+9 / 11
+Which resources are set to be created?
+
+# module.iam_iam-user.aws_iam_access_key.this_no_pgp[0] will be created
+# module.iam_iam-user.aws_iam_user.this[0] will be created
+# module.iam_iam-user.aws_iam_user_login_profile.this[0] will be created 
+
+
+10 / 11
+Why is the module creating additional resources, when only the name for creating an IAM User was defined in the main.tf file?
+Inspect the Inputs for this module in the documentation:
+https://registry.terraform.io/modules/terraform-aws-modules/iam/aws/latest/submodules/iam-user
+
+
+answer : resources will be created by default as per module configuration
+
+
+
+11 / 11
+We only want to create the IAM User. Update the module block to only allow create_user. Disable create_iam_access_key and create_iam_user_login_profile.
+When ready, run the terraform workflow to create the resources.
+
+module "iam_iam-user"  {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-user"
+  version = "5.28.0"
+  # insert the 1 required variable here
+
+  name = "max"
+
+    # Explicitly create the IAM user. This is the default behavior,
+  # but setting it to 'true' makes the intent clear.
+  create_user = true
+
+  # Set to 'false' to disable the creation of an IAM access key.
+  create_iam_access_key = false
+
+  # Set to 'false' to disable the creation of a login profile for the user.
+  create_iam_user_login_profile = false
+}
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+Do you want to perform these actions?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+module.iam_iam-user.aws_iam_user.this[0]: Creating...
+module.iam_iam-user.aws_iam_user.this[0]: Creation complete after 0s [id=max]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+
+
+
+
+

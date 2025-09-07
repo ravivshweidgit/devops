@@ -1,0 +1,279 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is following https://learn.kodekloud.com/user/courses/udemy-labs-terraform-for-beginners
+
+Kodekloud lab : Terraform Functions and Conditional Expressions
+==================================================
+
+1 / 14
+In this lab, we will work on functions. Just like we did in the lecture, make use of the terraform console command through this lab to test different functions, and see how they transform and manipulate values.
+
+OK
+
+
+Functions and Conditional Expressions
+
+
+2 / 14
+What value does floor(10.9) produce?
+10
+
+
+3 / 14
+What value does title("user-generated password file") produce?
+
+User-generated Password File
+
+
+4 / 14
+Which type of variable does the function lookup working with?
+Map
+
+
+5 / 14
+Navigate to the configuration directory /root/terraform-projects/project-sonic. Here, we have a number of variables declared in the variables.tf file.
+What type of variable is cloud_users?
+variable "cloud_users" {
+     type = string
+     default = "andrew:ken:faraz:mutsumi:peter:steve:braja"
+  
+}
+
+string
+
+
+
+6 / 14
+This variable contains the developers' names for project-sonic with the names separated by a :.
+Using this variable and the count meta-argument, create IAM users for all developers. Write the resource block and name it as a cloud in the main.tf file.
+
+
+Convert this variable from a string to a list.
+Do not change the variable defined in variables.tf.
+
+
+When ready, create the users by running a terraform init, plan, apply
+resource "aws_iam_user" "cloud" {
+  count = length( split(":", var.cloud_users  ) )
+
+  name =  split(":", var.cloud_users  )[count.index]
+}
+
+
+apply log:
+aws_iam_user.cloud[0]: Creating...
+aws_iam_user.cloud[4]: Creating...
+aws_iam_user.cloud[5]: Creating...
+aws_iam_user.cloud[1]: Creating...
+aws_iam_user.cloud[3]: Creating...
+aws_iam_user.cloud[6]: Creating...
+aws_iam_user.cloud[2]: Creating...
+aws_iam_user.cloud[0]: Creation complete after 0s [id=andrew]
+aws_iam_user.cloud[2]: Creation complete after 0s [id=faraz]
+aws_iam_user.cloud[5]: Creation complete after 0s [id=steve]
+aws_iam_user.cloud[6]: Creation complete after 0s [id=braja]
+aws_iam_user.cloud[1]: Creation complete after 0s [id=ken]
+aws_iam_user.cloud[4]: Creation complete after 0s [id=peter]
+aws_iam_user.cloud[3]: Creation complete after 0s [id=mutsumi]
+
+Apply complete! Resources: 7 added, 0 changed, 0 destroyed.
+
+
+7 / 14
+What is the name of the IAM User that is created at the Index 6, of the IAM User at address aws_iam_user.cloud ?
+Use the terraform console to find out.
+
+> aws_iam_user.cloud[6].name
+"braja"
+
+root in ~/terraform-projects/project-sonic via 💠 default on ☁️  (us-east-1) 
+❯ echo 'aws_iam_user.cloud[6].name' | terraform console
+"braja"
+
+
+8 / 14
+Locate the index of the element called oni in the variable called sf.
+
+variable "sf" {
+  type = list
+  default = [
+    "ryu",
+    "ken",
+    "akuma",
+    "seth",
+    "zangief",
+    "poison",
+    "gen",
+    "oni",
+    "thawk",
+    "fang",
+    "rashid",
+    "birdie",
+    "sagat",
+    "bison",
+    "cammy",
+    "chun-li",
+    "balrog",
+    "cody",
+    "rolento",
+    "ibuki"
+
+  ]
+}
+what is terrform console command ?
+
+> index(var.sf , "oni")
+7
+
+9 / 14
+What type is the variable called media?
+
+variable "media" {
+  type = set(string)
+  default = [ 
+    "/media/tails.jpg",
+    "/media/eggman.jpg",
+    "/media/ultrasonic.jpg",
+    "/media/knuckles.jpg",
+    "/media/shadow.jpg",
+      ]
+  
+}
+
+type = set(string)
+
+> type(var.media)
+set(string)
+
+
+10 / 14
+We have now, updated the main.tf in this configuration directory and added a new resource block to create a S3 bucket called sonic-media.
+
+Create an additional resource called upload_sonic_media to upload the files listed in the variable called media to this bucket.
+
+Use the following specifications:
+
+Use the for_each meta-argument to upload all the elements of the media variable.
+bucket: Use reference expression to the bucket sonic-media.
+source: Each element in the variable called media.
+key: Should be the name of the files being uploaded (minus the /media/). For an example, eggman.jpg, shadow.jpg e.t.c.
+
+Do not alter the variables!
+When ready, run terraform apply to create the bucket and upload the items.
+
+main.tf :
+resource "aws_iam_user" "cloud" {
+     name = split(":",var.cloud_users)[count.index]
+     count = length(split(":",var.cloud_users))
+  
+}
+resource "aws_s3_bucket" "sonic_media" {
+     bucket = var.bucket
+  
+}
+
+
+variable "media" {
+  type = set(string)
+  default = [ 
+    "/media/tails.jpg",
+    "/media/eggman.jpg",
+    "/media/ultrasonic.jpg",
+    "/media/knuckles.jpg",
+    "/media/shadow.jpg",
+      ]
+  
+}
+
+resource "aws_s3_object" "upload_sonic_media" {
+
+  bucket = aws_s3_bucket.sonic_media.id
+  
+  for_each = var.media
+    source = each.value
+    key = basename(each.value)
+}
+
+
+apply log: 
+aws_s3_bucket.sonic_media: Creating...
+aws_s3_bucket.sonic_media: Creation complete after 1s [id=sonic-media]
+aws_s3_object.upload_sonic_media["/media/eggman.jpg"]: Creating...
+aws_s3_object.upload_sonic_media["/media/knuckles.jpg"]: Creating...
+aws_s3_object.upload_sonic_media["/media/shadow.jpg"]: Creating...
+aws_s3_object.upload_sonic_media["/media/tails.jpg"]: Creating...
+aws_s3_object.upload_sonic_media["/media/ultrasonic.jpg"]: Creating...
+aws_s3_object.upload_sonic_media["/media/knuckles.jpg"]: Creation complete after 0s [id=knuckles.jpg]
+aws_s3_object.upload_sonic_media["/media/ultrasonic.jpg"]: Creation complete after 0s [id=ultrasonic.jpg]
+aws_s3_object.upload_sonic_media["/media/eggman.jpg"]: Creation complete after 0s [id=eggman.jpg]
+aws_s3_object.upload_sonic_media["/media/shadow.jpg"]: Creation complete after 0s [id=shadow.jpg]
+aws_s3_object.upload_sonic_media["/media/tails.jpg"]: Creation complete after 0s [id=tails.jpg]
+
+Apply complete! Resources: 6 added, 0 changed, 0 destroyed.
+
+
+
+11 / 14
+For the final question, navigate to the configuration directory called /root/terraform-projects/project-mario.
+We have an empty main.tf file here. The provider and variables have already been configured for you.
+OK
+
+
+12 / 14
+What is the value of the variable called small?
+variable "small" {
+    type = string
+    default = "t2.nano"
+}
+
+
+13 / 14
+What is the current value for the variable called name?
+variable  "name" {
+    type = string
+}
+undefined
+
+
+
+14 / 14
+Create an EC2 Instance with the resource name mario_servers.
+
+Use the following specifications:
+
+AMI: Use variable called ami.
+
+
+Tags: Create a tag with key Name and value set to the variable called name.
+
+
+Instance_type: Use a conditional expression so that - If the instance is created with a tag Name = "tiny", it should use the variable called small else the variable called large.
+
+
+We will supply the variable called name using the -var command line flag.
+
+resource "aws_instance" "mario_servers" {
+  ami = var.ami
+  tags = { Name = var.name }
+
+  instance_type = var.name == "tiny" ?  var.small : var.large 
+
+}
+
+
+apply log:
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+Do you want to perform these actions?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+aws_instance.mario_servers: Creating...
+aws_instance.mario_servers: Still creating... [10s elapsed]
+aws_instance.mario_servers: Creation complete after 10s [id=i-98310e35e5ff298ba]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+
