@@ -28,25 +28,22 @@ infrastructure/
 │       ├── main.tf
 │       ├── variables.tf
 │       └── output.tf
-├── terragrunt/                # Terragrunt configurations
-│   └── aws/
-│       ├── terragrunt.hcl     # Root configuration
-│       ├── vpc/
-│       │   ├── dev/
-│       │   │   └── terragrunt.hcl
-│       │   └── staging/
-│       │       └── terragrunt.hcl
-│       ├── rds/
-│       │   ├── dev/
-│       │   │   └── terragrunt.hcl
-│       │   └── staging/
-│       │       └── terragrunt.hcl
-│       └── ec2/
-│           └── dev/
-│               └── terragrunt.hcl
-└── bootstrap/                 # Bootstrap configuration
-    ├── main.tf
-    └── outputs.tf
+└── terragrunt/                # Terragrunt configurations
+    └── aws/
+        ├── terragrunt.hcl     # Root configuration
+        ├── vpc/
+        │   ├── dev/
+        │   │   └── terragrunt.hcl
+        │   └── staging/
+        │       └── terragrunt.hcl
+        ├── rds/
+        │   ├── dev/
+        │   │   └── terragrunt.hcl
+        │   └── staging/
+        │       └── terragrunt.hcl
+        └── ec2/
+            └── dev/
+                └── terragrunt.hcl
 ```
 
 ## 🚀 Getting Started
@@ -443,7 +440,7 @@ Then connect to `localhost:3306` in your MySQL GUI tool.
 
 ### 4. Backend Configuration
 - **Local backend**: For development (current setup)
-- **S3 backend**: For production (bootstrap configuration provided)
+- **S3 backend**: For production (requires manual S3 bucket creation)
 
 ### 5. Security Best Practices
 - **Private subnets**: For sensitive resources (databases)
@@ -456,11 +453,13 @@ Then connect to `localhost:3306` in your MySQL GUI tool.
 ### Issue 1: S3 Backend Bucket Doesn't Exist
 **Error**: `S3 bucket "bucket-name" does not exist`
 
-**Solution**: Use the bootstrap configuration to create the bucket first:
+**Solution**: Either create the S3 bucket manually or switch to local backend:
 ```bash
-cd bootstrap
-terraform init
-terraform apply
+# Option 1: Create S3 bucket manually
+aws s3 mb s3://your-unique-bucket-name
+
+# Option 2: Switch to local backend (what we did)
+# Update terragrunt/aws/terragrunt.hcl to use local backend
 ```
 
 ### Issue 2: Missing Backend Configuration
@@ -862,7 +861,7 @@ rm -f ~/.ssh/bastion-key*
 ## 🔄 Next Steps
 
 1. **Add Production Environment**: Create prod configurations
-2. **Implement S3 Backend**: Use remote state storage
+2. **Implement S3 Backend**: Create S3 bucket and switch to remote state storage
 3. **Add Monitoring**: CloudWatch logs and metrics
 4. **Set up CI/CD**: Automated deployments
 5. **Add More Resources**: Load balancers, auto-scaling groups
