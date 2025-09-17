@@ -1,0 +1,179 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is about GutHub Actions CI workflow
+
+this class is based on repository   https://github.com/ravivshweidgit/python-example-main
+
+main.py:
+
+import requests
+import os
+
+def get_weather(api_key, city):
+    url = f"http://api.weatherapi.com/v1/current.json?q={city}&key={api_key}"
+    response = requests.get(url)
+    data = response.json()
+    if response.status_code == 200:
+        temperature = data['current']['temp_c']
+        condition = data['current']['condition']['text']
+        return f"Current temperature in {city} is {temperature}°C, Condition: {condition}"
+    else:
+        return "Failed to fetch weather data"
+
+api_key = os.getenv('API_TOKEN')
+city = 'Tel Aviv'
+print(get_weather(api_key, city))
+
+
+https://openweathermap.org/
+
+https://home.openweathermap.org/users/sign_up
+
+Goto user and get you API key
+
+5fb04f968622b1875d83a5c3290310c4
+
+
+requirements.txt
+requests==2.28.1
+
+Dockerfile
+FROM python:3.9-alpine
+
+WORKDIR /code
+
+# Copy only the necessary files
+COPY requirements.txt .
+COPY main.py .
+
+# Install any dependencies
+RUN pip install -r requirements.txt
+
+# Run your application
+CMD ["python", "main.py"]
+
+
+we will create the work flow :
+
+
+set secrets :
+
+https://github.com/ravivshweidgit/python-example-main/settings
+Actions secrets and variables
+Repository secrets
+API_TOKEN
+DOCKER_PASSWORD
+DOCKER_USERNAME
+
+
+Goto docker hub
+create private repository : github-actions-lab
+https://hub.docker.com/repository/create?namespace=ravivshweid
+
+
+edit ci.yaml
+tags: grinbaum/python_examples:latest
+
+tags: ravivshweid/github-actions-lab:latest
+
+
+ravivm@ravivm-N501VW:~/projects/python-example-main$ git diff .
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index c964ea6..9f01c75 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -51,7 +51,7 @@ jobs:
+           context: .
+           file: ./Dockerfile
+           push: true
+-          tags: grinbaum/python_examples:latest
++          tags: ravivshweid/github-actions-lab:latest
+ 
+       - name: Logout from Docker Hub
+         run: docker logout
+ravivm@ravivm-N501VW:~/projects/python-example-main$ git add .
+ravivm@ravivm-N501VW:~/projects/python-example-main$ git commit -m"ci.yaml : tags: ravivshweid/github-actions-lab:latest"
+[main f0a6823] ci.yaml : tags: ravivshweid/github-actions-lab:latest
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ravivm@ravivm-N501VW:~/projects/python-example-main$ git push
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (5/5), 457 bytes | 457.00 KiB/s, done.
+Total 5 (delta 2), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+To github.com:ravivshweidgit/python-example-main.git
+   2624f38..f0a6823  main -> main
+ravivm@ravivm-N501VW:~/projects/python-example-main$ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+
+
+goto : https://github.com/ravivshweidgit/python-example-main/actions
+
+check the steps :
+https://github.com/ravivshweidgit/python-example-main/actions/runs/17806847029/job/50620707820
+
+
+
+I have fixed the python to work : the old code had bug, it was working with :
+
+url = f"http://api.weatherapi.com/v1/current.json?q={city}&key={api_key}"
+
+and I have fixed to the site that we have actually registered :
+
+url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
+
+
+import requests
+import os
+import json
+
+def get_weather(api_key, city):
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
+    
+    #print (url)
+    response = requests.get(url)
+    data = response.json()
+
+    if response.status_code == 200:
+
+        #print(json.dumps(data, indent=4))
+
+
+        # Get temperature from the 'main' key, and convert from Kelvin to Celsius
+        # The temperature key in OpenWeatherMap is 'temp'
+        temperature_kelvin = data['main']['temp']
+        temperature_celsius = temperature_kelvin - 273.15
+        
+        # Get condition from the 'weather' key, which is a list
+        # We access the first item [0] and then the 'description'
+        condition = data['weather'][0]['description']
+        
+        # Format the output with the new variables
+        return f"Current temperature in {city} is {temperature_celsius:.2f}°C, Condition: {condition}"
+
+    else:
+        return "Failed to fetch weather data"
+
+api_key = os.getenv('API_TOKEN')
+city = 'Tel Aviv'
+print(get_weather(api_key, city))
+
+
+
+https://github.com/ravivshweidgit/python-example-main/actions
+
+test : Run application :
+
+Run python main.py
+  python main.py
+  shell: /usr/bin/bash -e {0}
+  env:
+    pythonLocation: /opt/hostedtoolcache/Python/3.9.23/x64
+    LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.9.23/x64/lib
+    API_TOKEN: ***
+Current temperature in Tel Aviv is 26.06°C, Condition: few clouds
