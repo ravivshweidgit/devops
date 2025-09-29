@@ -1,0 +1,141 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is about ArgoCD
+
+minikube start
+
+
+let create name scpace argo cd
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-21-ArgoDC$ kubectl create ns argocd
+namespace/argocd created
+
+
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-21-ArgoDC$ kubectl get po -n argocd
+NAME                                                READY   STATUS    RESTARTS      AGE
+argocd-application-controller-0                     1/1     Running   0             73s
+argocd-applicationset-controller-54f96997f8-g8bsn   1/1     Running   0             74s
+argocd-dex-server-798cbff4c7-ngp9n                  1/1     Running   1 (37s ago)   74s
+argocd-notifications-controller-644f66f7df-hlg6z    1/1     Running   0             74s
+argocd-redis-6684c6947f-gj4lc                       1/1     Running   0             74s
+argocd-repo-server-6fccc5759b-zhgrg                 1/1     Running   0             74s
+argocd-server-64d5fcbd58-4l5lh                      1/1     Running   0             74s
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-21-ArgoDC$ kubectl get svc -n argocd
+NAME                                      TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+argocd-applicationset-controller          ClusterIP   10.103.55.225    <none>        7000/TCP,8080/TCP            2m22s
+argocd-dex-server                         ClusterIP   10.102.64.189    <none>        5556/TCP,5557/TCP,5558/TCP   2m22s
+argocd-metrics                            ClusterIP   10.110.212.115   <none>        8082/TCP                     2m22s
+argocd-notifications-controller-metrics   ClusterIP   10.99.48.57      <none>        9001/TCP                     2m22s
+argocd-redis                              ClusterIP   10.98.195.235    <none>        6379/TCP                     2m22s
+argocd-repo-server                        ClusterIP   10.107.188.129   <none>        8081/TCP,8084/TCP            2m22s
+argocd-server                             ClusterIP   10.110.13.100    <none>        80/TCP,443/TCP               2m22s
+argocd-server-metrics                     ClusterIP   10.101.141.158   <none>        8083/TCP                     2m22s
+
+
+lets try to enter argocd UI
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-21-ArgoDC$ kubectl -n argocd get secret argocd-initial-admin-secret -o yaml
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-28-ArgoDC$ kubectl -n argocd get secret argocd-initial-admin-secret -o yaml
+apiVersion: v1
+data:
+  password: TzZjM3dZeDNBc0prVVdKeQ==
+kind: Secret
+metadata:
+  creationTimestamp: "2025-09-28T17:37:02Z"
+  name: argocd-initial-admin-secret
+  namespace: argocd
+  resourceVersion: "738"
+  uid: 0c22579d-a159-48af-9639-c7abcb3ea95a
+type: Opaque
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-28-ArgoDC$ echo "TzZjM3dZeDNBc0prVVdKeQ==" | base64 -d
+
+O6c3wYx3AsJkUWJy
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-28-ArgoDC$ 
+
+
+kubectl -n argocd port-forward svc/argocd-server 8080:443
+
+https://localhost:8080/applications
+user admin
+password : O6c3wYx3AsJkUWJy
+
+
+create private repository
+https://github.com/ravivshweidgit/argocd-example-apps
+from 
+https://github.com/argoproj/argocd-example-apps
+
+
+create in the new repository 
+new file : my-argocd-proj.yaml
+the content of the file is from :
+https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#projects
+
+we have changed this :
+namespace: argocd
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: my-project
+  namespace: argocd
+  # Finalizer that ensures that project is not deleted until it is not referenced by any application
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Example Project
+  # Allow manifests to deploy from any Git repos
+  sourceRepos:
+  - '*'
+  # Only permit applications to deploy to the guestbook namespace in the same cluster
+  destinations:
+  - namespace: argocd
+    server: https://kubernetes.default.svc
+  # Deny all cluster-scoped resources from being created, except for Namespace
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+
+
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl apply -f my-argocd-proj.yaml 
+Warning: metadata.finalizers: "resources-finalizer.argocd.argoproj.io": prefer a domain-qualified finalizer name including a path (/) to avoid accidental conflicts with other finalizer writers
+appproject.argoproj.io/my-project created
+
+
+now we create ssh.yaml :
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: private-repo
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  type: git
+  url: Z2l0QGdpdGh1Yi5jb206cmF2aXZzaHdlaWRnaXQvYXJnb2NkLWV4YW1wbGUtYXBwcy5naXQK
+  sshPrivateKey: |
+    LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcFFJQkFBS0NBUUVBdnptNndrRDhteG13WURIWXRMTHhZUGZUR1hMQUFnV0FSNWFnWVZ0T2twUGJ0am9kCk16SmlTSytwVjd3ZFBXVW83VUMwUVdNMVZubEZheG9sMjA4ZklYODAzY1ZNOE0xRG9xdGdBd21LWE1qQUtnSWcKbzFFWHhvbys1QThzOXB2aDF5V1Z5TXk4R0haU1NmSVRWSEpQR1IrS1Zic3dVUDluam15ZHV1YjNrUVQ4cHlregpOSEpsTnBjbVhveUZYcCsvaHFGR0kwRnVFcktoajRlVEhyQnZMZVM0OENUTEpqd2oxTDFLNCtVL1BHYzZTWUZGCmczSWFvVlJTT1lLWUMwY01ZTWZTRTdtWUo5SHZGMEVKcWdwZmJVL3dBaFhuc2dIcHZhcEMyajFHV1cwOER3dTEKcjgvem9vWEZ3SFJISFZxV1lqa0Nya0hhcHQyMHdtRllxcmFGQXdJREFRQUJBb0lCQVFDWW5lbDQrY2JodnFudQp6RG1wVmh1aGlZa1lpV1hHOXo3L1k2OFNwSDNjTEZleFkwWkV3eFIvOEhxV0JCUE9HVHVGeHh0V0NHamNZQ05RCkxHbEVWQ3lEWG5RQi8ySzkyUVQvQWdtNXd0YUQ0TkRGZGpjNFFSTlpxS0l6QUEyaHNKMlpTV3oyK3Jld1NsYTQKbjVSZjFHOWVuTGFhWDdCYkpNd3dkbTJZYXBmeFM0aGZ5Q28vdkg2aUxsQ3hHVkpaam5JVnJyT201ZzVWcEdNVwpYOTVYck5BdDlOYlZ5cE1TTkdRZysySkRPWG1tclZpZmIvY29XbWpGb0ROT2FRUStYSTIrME8xY0l0SUdNM0ZPCkgvbFN5eXhoSndvYWJEb3FScERLNHpZNzdtd29zNWNwNlR4dmpuQUR6NDI2UFVmU3laZEFMajFzMTZscjBPcVgKZlZDS2tHNUJBb0dCQU84b2FRd3Fpa1dKNUVWTHhCOWsyMC9iblQ0NGRQQ3YyQk41ejhXL2JrRkM1U2w4cEZKQQpNeExBUTlQVmJwaWJ3eUNnMCtrRVFPM0hMNGhnNllidG9XR3ZVSWlGN2R3TDhKTEpxSlBzMFJBRnhKZGRqTWtyClAwTUhGVTgzcW9ZUStja3ByYVJFRW00VXAwOGJNazNmZUs3eDRnTVg2NGRMZkdIcnJWOWJsQmVqQW9HQkFNeXgKTHpjakF0NmhTUXRCZzZGWVR0ZEgvUy9jc2RRNmVmN05wMHQvVWgyN3dMbzYwckxHakRSdllVYWc3Y1FKZW5vZgpnbldSc3llRVgvbjFxenlJSzAvWTFuOGpHNFJpNjNoSURJSVVPVWVyZGlDL0swNVZCNjBhWU1XdzN4TE9ia0JzCk90ZHhjK0lUZk1ZcmxxcGIzUUp1c1dPNGc2QnBYSnA1dithN0RqTWhBb0dCQU1UTk1qU0t4U0lZS0xwRmNPeU0KcUZSODJsYWJTcy9OUkRneW95R05PQU9JTXVBQzY0MnJ1dHVSVDcrQUFQU2dLT0F1dUhNbHh2QmtXdDhWTU5hUgpzWjJiRU9CbnBhYlFSSFhtY0V6YU1lZkhkMUUvOEZ5U3RBcEtSK1RhWC83VzlWWHVjQytldkxQTlZ5aW5ycXVhClc4dEt6THZTOFVSeWY3WnNwRXkySlpXVkFvR0FEekt3c01WV3R6VCtlV2w1M29ieUE2WUN0SVVNWnhlWWEwVFYKd1JOSkE1QW5OU3ljN0UwMXA4Y0ZUL3N1N0RsUDhMVmFPR1NEQ3RJWFZqWFphdnNwVEJwcmdyRVduL1BBVEFQOQplY01LcGJtalliY1AvaGJ1SlBvcWFVTkNyT0RLNnRtZVhOUzlwL0dPZUNCUVpZSEFuU2VlNENxWkMxWUhYQ2ppCkNMMm14a0VDZ1lFQWc1ZHZJUFlpb01VUlo2TkVnRWpXaFpnMTdBd1hBTVpnSVN2ZVluNnBNNUFBeDNhUnNLaWQKcHNSOCtsczcyVVdubEJZMktzMWVjVXRva3BNZkNBZnhIaTVRREhVZVg1dVVONlBqV3UyLzJTTEtOTUtZZnJ1NApCTVI3cGFTQnhyMWRCZEpQV0hsZlNOZkViY0RHbFhHOExxUVJwdWRPYmRSczI3WW1YVzZVSnJRPQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQ==
+
+
+
+    ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl apply -f ssh.yaml 
+secret/private-repo created
+
+
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl apply -f application.yaml 
+application.argoproj.io/guestbook created
+
+
+
+
+
+
