@@ -1,0 +1,423 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is about ArgoCD
+
+
+on the previous lesson we did :
+
+minikube start
+
+
+let create name scpace argo cd
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-21-ArgoDC$ kubectl create ns argocd
+namespace/argocd created
+
+
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-21-ArgoDC$ kubectl get po -n argocd
+NAME                                                READY   STATUS    RESTARTS      AGE
+argocd-application-controller-0                     1/1     Running   0             73s
+argocd-applicationset-controller-54f96997f8-g8bsn   1/1     Running   0             74s
+argocd-dex-server-798cbff4c7-ngp9n                  1/1     Running   1 (37s ago)   74s
+argocd-notifications-controller-644f66f7df-hlg6z    1/1     Running   0             74s
+argocd-redis-6684c6947f-gj4lc                       1/1     Running   0             74s
+argocd-repo-server-6fccc5759b-zhgrg                 1/1     Running   0             74s
+argocd-server-64d5fcbd58-4l5lh                      1/1     Running   0             74s
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-21-ArgoDC$ kubectl get svc -n argocd
+NAME                                      TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+argocd-applicationset-controller          ClusterIP   10.103.55.225    <none>        7000/TCP,8080/TCP            2m22s
+argocd-dex-server                         ClusterIP   10.102.64.189    <none>        5556/TCP,5557/TCP,5558/TCP   2m22s
+argocd-metrics                            ClusterIP   10.110.212.115   <none>        8082/TCP                     2m22s
+argocd-notifications-controller-metrics   ClusterIP   10.99.48.57      <none>        9001/TCP                     2m22s
+argocd-redis                              ClusterIP   10.98.195.235    <none>        6379/TCP                     2m22s
+argocd-repo-server                        ClusterIP   10.107.188.129   <none>        8081/TCP,8084/TCP            2m22s
+argocd-server                             ClusterIP   10.110.13.100    <none>        80/TCP,443/TCP               2m22s
+argocd-server-metrics                     ClusterIP   10.101.141.158   <none>        8083/TCP                     2m22s
+
+
+lets try to enter argocd UI
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-21-ArgoDC$ kubectl -n argocd get secret argocd-initial-admin-secret -o yaml
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-28-ArgoDC$ kubectl -n argocd get secret argocd-initial-admin-secret -o yaml
+apiVersion: v1
+data:
+  password: TzZjM3dZeDNBc0prVVdKeQ==
+kind: Secret
+metadata:
+  creationTimestamp: "2025-09-28T17:37:02Z"
+  name: argocd-initial-admin-secret
+  namespace: argocd
+  resourceVersion: "738"
+  uid: 0c22579d-a159-48af-9639-c7abcb3ea95a
+type: Opaque
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-28-ArgoDC$ echo "TzZjM3dZeDNBc0prVVdKeQ==" | base64 -d
+
+O6c3wYx3AsJkUWJy
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-28-ArgoDC$ 
+
+
+kubectl -n argocd port-forward svc/argocd-server 8080:443
+
+https://localhost:8080/applications
+user admin
+password : O6c3wYx3AsJkUWJy
+
+
+create private repository
+https://github.com/ravivshweidgit/argocd-example-apps
+from 
+https://github.com/argoproj/argocd-example-apps
+
+
+create in the new repository 
+new file : my-argocd-proj.yaml
+the content of the file is from :
+https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#projects
+
+we have changed this :
+namespace: argocd
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: my-project
+  namespace: argocd
+  # Finalizer that ensures that project is not deleted until it is not referenced by any application
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Example Project
+  # Allow manifests to deploy from any Git repos
+  sourceRepos:
+  - '*'
+  # Only permit applications to deploy to the guestbook namespace in the same cluster
+  destinations:
+  - namespace: argocd
+    server: https://kubernetes.default.svc
+  # Deny all cluster-scoped resources from being created, except for Namespace
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+
+
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl apply -f my-argocd-proj.yaml 
+Warning: metadata.finalizers: "resources-finalizer.argocd.argoproj.io": prefer a domain-qualified finalizer name including a path (/) to avoid accidental conflicts with other finalizer writers
+appproject.argoproj.io/my-project created
+
+
+now we create ssh.yaml :
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: private-repo
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  type: git
+  url: Z2l0QGdpdGh1Yi5jb206cmF2aXZzaHdlaWRnaXQvYXJnb2NkLWV4YW1wbGUtYXBwcy5naXQK
+  sshPrivateKey: |
+      private key here
+
+
+
+    ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl apply -f ssh.yaml 
+secret/private-repo created
+
+
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl apply -f application.yaml 
+application.argoproj.io/guestbook created
+
+end of previoius lesson .
+
+=======================================================================================
+This section not part of the lesson, just something we talked
+
+cat $HOME/.kube/config
+
+kubectl config view
+
+kubectl config use-context
+
+end of not relevant section
+
+=======================================================================================
+
+Today lesson :
+
+
+
+1st part  we apply syncPolicy then we commit a change on the source repository and argo will sync the application
+=================================================================================================================
+application yaml edit and add :
+
+  syncPolicy:
+    automated: {}
+
+    kubectl apply -f application.yaml
+
+
+helm-guestbook/values.yaml edit port from 08 to 8080
+service:
+  type: ClusterIP
+  port: 8080
+
+commit and push change
+LAST SYNC 
+ Sync OK
+to cb9bf42 
+Succeeded 5 minutes ago (Sun Oct 05 2025 20:55:19 GMT+0300)
+Author:
+Raviv Shweid <raviv.shweid.git@gmail.com> -
+Comment:
+port: 8080
+
+
+guestbook-helm-guestbook                  ClusterIP   10.107.135.101   <none>        8080/TCP                     5d21h
+
+
+2nd part, set prune true, then we remove resource from source configuration and argocd will remove  the resource
+=================================================================================================================
+application yaml edit and add :
+  syncPolicy:
+    automated:
+      prune: true
+
+
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl apply -f application.yaml 
+application.argoproj.io/guestbook configured
+
+ 
+helm-guestbook/values.yaml edit count from 1 to zero :
+replicaCount: 0
+
+
+avivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl get rs -n argocd
+NAME                                          DESIRED   CURRENT   READY   AGE
+guestbook-helm-guestbook-6585c766d6           1         1         1       5d22h
+
+
+we commit and push replicaCount: 0
+
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ git push
+
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl get rs -n argocd
+NAME                                          DESIRED   CURRENT   READY   AGE
+guestbook-helm-guestbook-6585c766d6           0         0         0       5d22h
+
+now replica is down from 1 to zero
+
+
+
+3rd part, set selfHeal true, then we override k8s with replicas=5 argocd will scale down to zero as in repository
+=================================================================================================================
+
+self healing :
+
+edit application.yaml : selfHea true
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl scale deployment guestbook-helm-guestbook  --replicas=5 -n argocd
+deployment.apps/guestbook-helm-guestbook scaled
+
+scale to 5
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl get deploy -n argocd
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+guestbook-helm-guestbook           5/5     5            5           5d22h
+
+
+apply self heal :
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl apply -f application.yaml 
+application.argoproj.io/guestbook configured
+
+
+self heal back to zero :
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl get deploy -n argocd
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+guestbook-helm-guestbook           0/0     0            0           5d22h
+
+
+
+4th part, set targetRevision before all changes, argocd will sync resourcses before all todays changes
+======================================================================================================
+
+
+revert source repository to spesific commit before we did all changes:
+port was 80 and replicas was 1
+
+targetRevision: 3938f17f5e713020ed1ecc9381f0e75125426637   was HEAD
+
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl apply -f application.yaml 
+application.argoproj.io/guestbook configured
+
+port back to 80
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl get svc -n argocd
+NAME                                      TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+guestbook-helm-guestbook                  ClusterIP   10.107.135.101   <none>        80/TCP                       5d22h
+
+
+
+5th part, sync waves example , argocd will sync resourcses before all todays changes
+======================================================================================================
+
+sync-waves
+
+create application-sync-waves.yaml :
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sync-waves
+  namespace: argocd
+spec:
+  project: my-project
+  source:
+    repoURL:  git@github.com:ravivshweidgit/argocd-example-apps.git
+    targetRevision: HEAD
+    path: sync-waves
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl apply -f application-sync-waves.yaml 
+as we monitored the argo cd console https://localhost:8080/applications/argocd/sync-waves?view=tree&resource=
+we see all the hooks running live 
+
+
+sync-waves/manifest.yaml
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: upgrade-sql-schema
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+spec:
+  template:
+    spec:
+      containers:
+        - name: upgrade-sql-schema
+          image: alpine:latest
+          command: ["sleep", "5"]
+      restartPolicy: Never
+---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tier: backend
+  template:
+    metadata:
+      labels:
+        tier: backend
+    spec:
+      containers:
+        - name: main
+          image: nginx:latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    tier: backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maint-page-up
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  template:
+    spec:
+      containers:
+        - name: page-up
+          image: alpine:latest
+          command: ["sleep", "2"]
+      restartPolicy: Never
+  backoffLimit: 0
+---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      containers:
+        - name: main
+          image: nginx:latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  selector:
+    tier: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maint-page-down
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  template:
+    spec:
+      containers:
+        - name: page-down
+          image: alpine:latest
+          command: ["sleep", "2"]
+      restartPolicy: Never
+
