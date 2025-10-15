@@ -1,0 +1,182 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is about ArgoCD
+
+
+on the previous lesson we did :
+
+minikube start
+
+let create name scpace argo cd
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-21-ArgoDC$ kubectl create ns argocd
+namespace/argocd created
+
+
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-21-ArgoDC$ kubectl get po -n argocd
+NAME                                                READY   STATUS    RESTARTS      AGE
+argocd-application-controller-0                     1/1     Running   0             73s
+argocd-applicationset-controller-54f96997f8-g8bsn   1/1     Running   0             74s
+argocd-dex-server-798cbff4c7-ngp9n                  1/1     Running   1 (37s ago)   74s
+argocd-notifications-controller-644f66f7df-hlg6z    1/1     Running   0             74s
+argocd-redis-6684c6947f-gj4lc                       1/1     Running   0             74s
+argocd-repo-server-6fccc5759b-zhgrg                 1/1     Running   0             74s
+argocd-server-64d5fcbd58-4l5lh                      1/1     Running   0             74s
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-21-ArgoDC$ kubectl get svc -n argocd
+NAME                                      TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+argocd-applicationset-controller          ClusterIP   10.103.55.225    <none>        7000/TCP,8080/TCP            2m22s
+argocd-dex-server                         ClusterIP   10.102.64.189    <none>        5556/TCP,5557/TCP,5558/TCP   2m22s
+argocd-metrics                            ClusterIP   10.110.212.115   <none>        8082/TCP                     2m22s
+argocd-notifications-controller-metrics   ClusterIP   10.99.48.57      <none>        9001/TCP                     2m22s
+argocd-redis                              ClusterIP   10.98.195.235    <none>        6379/TCP                     2m22s
+argocd-repo-server                        ClusterIP   10.107.188.129   <none>        8081/TCP,8084/TCP            2m22s
+argocd-server                             ClusterIP   10.110.13.100    <none>        80/TCP,443/TCP               2m22s
+argocd-server-metrics                     ClusterIP   10.101.141.158   <none>        8083/TCP                     2m22s
+
+
+lets try to enter argocd UI
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-21-ArgoDC$ kubectl -n argocd get secret argocd-initial-admin-secret -o yaml
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-28-ArgoDC$ kubectl -n argocd get secret argocd-initial-admin-secret -o yaml
+apiVersion: v1
+data:
+  password: TzZjM3dZeDNBc0prVVdKeQ==
+kind: Secret
+metadata:
+  creationTimestamp: "2025-09-28T17:37:02Z"
+  name: argocd-initial-admin-secret
+  namespace: argocd
+  resourceVersion: "738"
+  uid: 0c22579d-a159-48af-9639-c7abcb3ea95a
+type: Opaque
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-28-ArgoDC$ echo "TzZjM3dZeDNBc0prVVdKeQ==" | base64 -d
+
+O6c3wYx3AsJkUWJy
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-09-28-ArgoDC$ 
+
+
+kubectl -n argocd port-forward svc/argocd-server 8080:443
+
+https://localhost:8080/applications
+user admin
+password : O6c3wYx3AsJkUWJy
+
+
+end of previous lesson
+========================================================================================================================
+
+
+Today lesson :
+
+
+Example 1 ApplicationSet :
+============================
+from
+https://argo-cd.readthedocs.io/en/latest/operator-manual/applicationset/Generators-Git/
+copy and create application-set.yaml
+
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cluster-addons
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: https://github.com/mabusaa/argocd-example-apps.git
+      revision: HEAD
+      directories:
+      - path: helmcharts/security-policy-charts/*
+              
+  template:
+    metadata:
+      name: '{{path.basename}}'
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/mabusaa/argocd-example-apps.git
+        targetRevision: HEAD
+        path: '{{path}}'
+        helm:
+          releaseName: '{{path.basename}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{path.basename}}'
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true
+
+
+
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl apply -f application-set.yaml 
+applicationset.argoproj.io/cluster-addons created
+
+
+lets look in argocd browser viwer we have 2 application created
+https://localhost:8080/applications?showFavorites=false&proj=&sync=&autoSync=&health=&namespace=&cluster=&labels=
+
+falco
+kyverno
+
+lets sync them..
+
+
+clean up
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ kubectl delete -f application-set.yaml 
+applicationset.argoproj.io "cluster-addons" deleted from argocd namespace
+
+
+
+
+======================================================================
+cloning public repository for the next 2 examples
+
+ravivm@ravivm-N501VW:~/projects/argocd-example-apps$ cd ..
+ravivm@ravivm-N501VW:~/projects$ git clone https://github.com/mabusaa/argocd-course-app-of-apps.git
+Cloning into 'argocd-course-app-of-apps'...
+remote: Enumerating objects: 42, done.
+remote: Counting objects: 100% (22/22), done.
+remote: Compressing objects: 100% (7/7), done.
+remote: Total 42 (delta 18), reused 15 (delta 15), pack-reused 20 (from 1)
+Receiving objects: 100% (42/42), 4.60 KiB | 4.60 MiB/s, done.
+Resolving deltas: 100% (19/19), done.
+
+
+
+
+Example 2 app-of-apps : root-app-directory-approach :
+=====================================================
+ravivm@ravivm-N501VW:~/projects/argocd-course-app-of-apps$ kubectl apply -f root-app-directory-approach.yaml 
+Warning: metadata.finalizers: "resources-finalizer.argocd.argoproj.io": prefer a domain-qualified finalizer name including a path (/) to avoid accidental conflicts with other finalizer writers
+application.argoproj.io/root-app-directory-approach created
+ravivm@ravivm-N501VW:~/projects/argocd-course-app-of-apps$ 
+
+sync apps
+
+cleanup:
+ravivm@ravivm-N501VW:~/projects/argocd-course-app-of-apps$ kubectl delete -f root-app-directory-approach.yaml 
+application.argoproj.io "root-app-directory-approach" deleted from argocd namespace
+
+
+
+Example 3 app-of-apps : root-app-helm-approach
+==============================================
+ravivm@ravivm-N501VW:~/projects/argocd-course-app-of-apps$ kubectl apply -f root-app-helm-approach.yaml 
+Warning: metadata.finalizers: "resources-finalizer.argocd.argoproj.io": prefer a domain-qualified finalizer name including a path (/) to avoid accidental conflicts with other finalizer writers
+application.argoproj.io/root-app-helm-approach created
+this example is auto sync
+
+cleanup:
+ravivm@ravivm-N501VW:~/projects/argocd-course-app-of-apps$ kubectl delete -f root-app-helm-approach.yaml 
+application.argoproj.io "root-app-helm-approach" deleted from argocd namespace
+ravivm@ravivm-N501VW:~/projects/argocd-course-app-of-apps$ 

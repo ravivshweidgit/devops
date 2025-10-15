@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cluster-addons
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: https://github.com/mabusaa/argocd-example-apps.git
+      revision: HEAD
+      directories:
+      - path: helmcharts/security-policy-charts/*
+              
+  template:
+    metadata:
+      name: '{{path.basename}}'
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/mabusaa/argocd-example-apps.git
+        targetRevision: HEAD
+        path: '{{path}}'
+        helm:
+          releaseName: '{{path.basename}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{path.basename}}'
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true
