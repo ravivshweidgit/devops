@@ -1,0 +1,148 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is about Prometheuse
+
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
+
+helm repo update
+
+
+helm install kube-prometheus-stack   --create-namespace   --namespace kube-prometheus-stack   prometheus-community/kube-prometheus-stack
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-19-Prometheus$ kubectl get po -n kube-prometheus-stack
+NAME                                                        READY   STATUS    RESTARTS   AGE
+alertmanager-kube-prometheus-stack-alertmanager-0           2/2     Running   0          2m5s
+kube-prometheus-stack-grafana-59b856967d-z95tx              3/3     Running   0          2m23s
+kube-prometheus-stack-kube-state-metrics-557fd457c6-5kb2f   1/1     Running   0          2m23s
+kube-prometheus-stack-operator-698674bb67-v87x4             1/1     Running   0          2m23s
+kube-prometheus-stack-prometheus-node-exporter-dcrfj        1/1     Running   0          2m23s
+prometheus-kube-prometheus-stack-prometheus-0               2/2     Running   0          2m5s
+
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-19-Prometheus$ kubectl get svc -n kube-prometheus-stack
+NAME                                             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+alertmanager-operated                            ClusterIP   None             <none>        9093/TCP,9094/TCP,9094/UDP   3m44s
+kube-prometheus-stack-alertmanager               ClusterIP   10.103.132.244   <none>        9093/TCP,8080/TCP            4m3s
+kube-prometheus-stack-grafana                    ClusterIP   10.101.135.100   <none>        80/TCP                       4m3s
+kube-prometheus-stack-kube-state-metrics         ClusterIP   10.96.27.232     <none>        8080/TCP                     4m3s
+kube-prometheus-stack-operator                   ClusterIP   10.101.192.124   <none>        443/TCP                      4m3s
+kube-prometheus-stack-prometheus                 ClusterIP   10.102.61.144    <none>        9090/TCP,8080/TCP            4m3s
+kube-prometheus-stack-prometheus-node-exporter   ClusterIP   10.106.141.238   <none>        9100/TCP                     4m3s
+prometheus-operated                              ClusterIP   None             <none>        9090/TCP                     3m44s
+
+
+kubectl port-forward -n kube-prometheus-stack svc/kube-prometheus-stack-alertmanager 9093:9093
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-19-Prometheus$ kubectl port-forward -n kube-prometheus-stack svc/kube-prometheus-stack-prometheus 9090:9090
+Forwarding from 127.0.0.1:9090 -> 9090
+Forwarding from [::1]:9090 -> 9090
+
+open browser :
+http://localhost:9090/
+
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-22-Prometheus-Thanos$ kubectl apply -f custom-alert-rules.yaml 
+prometheusrule.monitoring.coreos.com/kube-pod-not-ready created
+
+
+
+kubectl run nginx-pod --image=nginx:lates3
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-22-Prometheus-Thanos$ kubectl run nginx-pod --image=nginx:lates3
+pod/nginx-pod created
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-22-Prometheus-Thanos$ kubectl get pods 
+NAME        READY   STATUS         RESTARTS   AGE
+nginx-pod   0/1     ErrImagePull   0          39s
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-22-Pr
+
+
+KubernetesPodNotHealthy red : 
+Alert labels  State Active Since  Value
+alertname="KubernetesPodNotHealthy"
+namespace="default"
+pod="nginx-pod"
+severity="critical"
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-22-Prometheus-Thanos$ kubectl delete pod nginx-pod
+pod "nginx-pod" deleted from default namespace
+
+
+alert  KubernetesPodNotHealthy OK now : 
+description Pod {{ $labels.namespace }}/{{ $labels.pod }} has been in a non-running state for longer than 15 minutes. VALUE = {{ $value }} LABELS = {{ $labels }}
+summary Kubernetes Pod not healthy (instance {{ $labels.instance }})
+
+minikube delete 
+
+
+
+Thanos example :
+
+~/projects/devops/2025-10-22-Prometheus-Thanos/prometheus
+
+docker-compose.yaml
+
+docker compose up -d --build go-application
+docker compose up -d --build python-application
+docker compose up -d --build dotnet-application
+docker compose up -d --build nodejs-application
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-22-Prometheus-Thanos/prometheus$ docker ps
+CONTAINER ID   IMAGE                COMMAND                  CREATED              STATUS              PORTS                                     NAMES
+5ae744c85d92   nodejs-application   "docker-entrypoint.s…"   47 seconds ago       Up 46 seconds       0.0.0.0:83->5000/tcp, [::]:83->5000/tcp   nodejs-application
+1f8af3f3a2c7   dotnet-application   "dotnet dotnet.dll"      About a minute ago   Up About a minute   0.0.0.0:82->5000/tcp, [::]:82->5000/tcp   dotnet-application
+4aa891106d5e   python-application   "/bin/sh -c 'flask r…"   About a minute ago   Up About a minute   0.0.0.0:81->5000/tcp, [::]:81->5000/tcp   python-application
+e7106d1f883d   go-application       "./myapp"                2 minutes ago        Up 2 minutes        0.0.0.0:80->5000/tcp, [::]:80->5000/tcp   go-application
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-22-Prometheus-Thanos/prometheus$ cd sharding/
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-22-Prometheus-Thanos/prometheus/sharding$ 
+
+docker compose up -d prometheus-00
+docker compose up -d prometheus-01
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-22-Prometheus-Thanos/prometheus/sharding$ docker ps
+CONTAINER ID   IMAGE                    COMMAND                  CREATED          STATUS          PORTS                                         NAMES
+a7d20396a583   prom/prometheus:v3.3.0   "/bin/prometheus --c…"   13 seconds ago   Up 12 seconds   0.0.0.0:9091->9090/tcp, [::]:9091->9090/tcp   prometheus-01
+bfa8849619ee   prom/prometheus:v3.3.0   "/bin/prometheus --c…"   18 seconds ago   Up 17 seconds   0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp   prometheus-00
+5ae744c85d92   nodejs-application       "docker-entrypoint.s…"   5 minutes ago    Up 5 minutes    0.0.0.0:83->5000/tcp, [::]:83->5000/tcp       nodejs-application
+1f8af3f3a2c7   dotnet-application       "dotnet dotnet.dll"      5 minutes ago    Up 5 minutes    0.0.0.0:82->5000/tcp, [::]:82->5000/tcp       dotnet-application
+4aa891106d5e   python-application       "/bin/sh -c 'flask r…"   6 minutes ago    Up 6 minutes    0.0.0.0:81->5000/tcp, [::]:81->5000/tcp       python-application
+e7106d1f883d   go-application           "./myapp"                6 minutes ago    Up 6 minutes    0.0.0.0:80->5000/tcp, [::]:80->5000/tcp       go-application
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-22-Prometheus-Thanos/prometheus$ cd thanos/
+
+docker compose up
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-22-Prometheus-Thanos/prometheus/thanos$ docker ps
+CONTAINER ID   IMAGE                           COMMAND                  CREATED          STATUS          PORTS                                                             NAMES
+3045e3998a8e   grafana/grafana:latest          "/run.sh"                22 seconds ago   Up 21 seconds   0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp                       grafana
+f7712b3d6d55   quay.io/thanos/thanos:v0.38.0   "/bin/thanos query -…"   22 seconds ago   Up 21 seconds   0.0.0.0:19090->19090/tcp, [::]:19090->19090/tcp                   thanos-query
+12794378709b   quay.io/thanos/thanos:v0.38.0   "/bin/thanos sidecar…"   23 seconds ago   Up 21 seconds                                                                     thanos-sidecar-01
+b9003983a39c   quay.io/thanos/thanos:v0.38.0   "/bin/thanos sidecar…"   23 seconds ago   Up 21 seconds                                                                     thanos-sidecar-00
+95cb549ef0be   quay.io/minio/minio:latest      "/usr/bin/docker-ent…"   23 seconds ago   Up 22 seconds   0.0.0.0:9000-9001->9000-9001/tcp, [::]:9000-9001->9000-9001/tcp   minio
+a7d20396a583   prom/prometheus:v3.3.0          "/bin/prometheus --c…"   12 minutes ago   Up 12 minutes   0.0.0.0:9091->9090/tcp, [::]:9091->9090/tcp                       prometheus-01
+bfa8849619ee   prom/prometheus:v3.3.0          "/bin/prometheus --c…"   12 minutes ago   Up 12 minutes   0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp                       prometheus-00
+5ae744c85d92   nodejs-application              "docker-entrypoint.s…"   17 minutes ago   Up 17 minutes   0.0.0.0:83->5000/tcp, [::]:83->5000/tcp                           nodejs-application
+1f8af3f3a2c7   dotnet-application              "dotnet dotnet.dll"      17 minutes ago   Up 17 minutes   0.0.0.0:82->5000/tcp, [::]:82->5000/tcp                           dotnet-application
+4aa891106d5e   python-application              "/bin/sh -c 'flask r…"   18 minutes ago   Up 18 minutes   0.0.0.0:81->5000/tcp, [::]:81->5000/tcp                           python-application
+e7106d1f883d   go-application                  "./myapp"                18 minutes ago   Up 18 minutes   0.0.0.0:80->5000/tcp, [::]:80->5000/tcp                           go-application
+
+
+open Grafana in Browser
+http://localhost:3000
+
+http://localhost:3000/connections/datasources
+explore 
+
