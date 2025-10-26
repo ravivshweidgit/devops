@@ -1,0 +1,207 @@
+Please create details student guide MD format  for the bellow example lesson:
+
+this lesson is about ELK elastick search  kibana
+
+osboxes@osboxes:~$ minikube start --cpus 4 --memory 8192
+😄  minikube v1.35.0 on Ubuntu 24.04
+✨  Automatically selected the docker driver
+
+❌  Exiting due to RSRC_OVER_ALLOC_MEM: Requested memory allocation 8192MB is more than your system limit 7893MB.
+💡  Suggestion: Start minikube with less memory allocated: 'minikube start --memory=2200mb'
+
+osboxes@osboxes:~$ minikube start --cpus 4 --memory 7893
+😄  minikube v1.35.0 on Ubuntu 24.04
+✨  Automatically selected the docker driver
+
+🧯  The requested memory allocation of 7893MiB does not leave room for system overhead (total system memory: 7893MiB). You may face stability issues.
+💡  Suggestion: Start minikube with less memory allocated: 'minikube start --memory=2200mb'
+
+📌  Using Docker driver with root privileges
+👍  Starting "minikube" primary control-plane node in "minikube" cluster
+🚜  Pulling base image v0.0.46 ...
+🔥  Creating docker container (CPUs=4, Memory=7893MB) ...
+🐳  Preparing Kubernetes v1.32.0 on Docker 27.4.1 ...
+    ▪ Generating certificates and keys ...
+    ▪ Booting up control plane ...
+    ▪ Configuring RBAC rules ...
+🔗  Configuring bridge CNI (Container Networking Interface) ...
+🔎  Verifying Kubernetes components...
+    ▪ Using image gcr.io/k8s-minikube/storage-provisioner:v5
+🌟  Enabled addons: storage-provisioner, default-storageclass
+
+❗  /snap/bin/kubectl is version 1.34.1, which may have incompatibilities with Kubernetes 1.32.0.
+    ▪ Want kubectl v1.32.0? Try 'minikube kubectl -- get pods -A'
+🏄  Done! kubectl is now configured to use "minikube" cluster and "default" namespace by default
+osboxes@osboxes:~$ cd work
+osboxes@osboxes:~/work$ git clone https://github.com/sagary2j/ELK-Stack-Kubernetes-minikube
+Cloning into 'ELK-Stack-Kubernetes-minikube'...
+remote: Enumerating objects: 14, done.
+remote: Counting objects: 100% (14/14), done.
+remote: Compressing objects: 100% (12/12), done.
+remote: Total 14 (delta 1), reused 11 (delta 1), pack-reused 0 (from 0)
+Receiving objects: 100% (14/14), done.
+Resolving deltas: 100% (1/1), done.
+osboxes@osboxes:~/work$ ls
+ 1_10.sh                            failed_ips.txt       output_6.txt
+ argocd-course-app-of-apps          file.txt             output.txt
+ charts                             find_file.sh         password.sh
+ checkfile.sh                       flip.fu              policies
+ check_range.sh                     guestbook            postgres-operator
+ check.sh                           hello.sh             python_1_submission.py
+ compare.sh                         helm101              python_2
+ CRD                                jenkins-pipeline     python_3
+'credentials fot boto3.txt'         k8s-2                python_4
+ custom-alert-rules.yaml            k8s-3                python_5
+ d1                                 k8s-basic-practice   python_6
+ d1_backup_20250217_041438.tar.gz   k8s-labs             python_DB
+ decimal2binary.fu                  library.db           Python_example
+ dev1.txt                           liner.sh             python_OOP
+ diveintoansible                    m1.txt               README.md
+ diveintoansible-lab                magic.mgc            showdate.sh
+ django                             mkdir                success.txt
+ docker_2                           mktest.sh            sysinfo.sh
+ docker_3                           myadmin.sh           tab1
+ ELK-Stack-Kubernetes-minikube      MyPipeline           terragrunt_linux_amd64
+ error.log                          numbers              tutorial-kubernetes-event-driven-autoscaling
+ error.txt                          numbers.sh           working
+osboxes@osboxes:~/work$ cd ELK-Stack-Kubernetes-minikube/
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ ls
+app-deployment.yml  es-svc.yaml   kibana-deployment.yaml  logstash.conf            logstash-svc.yml
+es-deployment.yaml  filebeat.yml  kibana-svc.yaml         logstash-deployment.yml  README.md
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ code .
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl apply -f es-deployment.yaml 
+deployment.apps/es-logging created
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl get deploy
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+es-logging   0/1     1            0           18s
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl get pods
+NAME                          READY   STATUS    RESTARTS   AGE
+es-logging-66c49458cd-j4957   0/1     Running   0          30s
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl get pods
+NAME                          READY   STATUS    RESTARTS   AGE
+es-logging-66c49458cd-j4957   0/1     Running   0          47s
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl get pods
+NAME                          READY   STATUS    RESTARTS   AGE
+es-logging-66c49458cd-j4957   1/1     Running   0          66s
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl apply -f es-svc.yaml 
+service/es-service created
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl get svc
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+es-service   NodePort    10.98.127.246   <none>        9200:31870/TCP   12s
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP          4m10s
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ minikube service es-service
+|-----------|------------|-------------|---------------------------|
+| NAMESPACE |    NAME    | TARGET PORT |            URL            |
+|-----------|------------|-------------|---------------------------|
+| default   | es-service |        9200 | http://192.168.49.2:31870 |
+|-----------|------------|-------------|---------------------------|
+🎉  Opening service default/es-service in default browser...
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ Created TensorFlow Lite XNNPACK delegate for CPU.
+[11016:11043:1026/144601.820883:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[11016:11043:1026/144626.078242:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[11016:11043:1026/144709.058553:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl apply -f kibana-deployment.yaml 
+deployment.apps/kibana-logging created
+
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl get pods
+NAME                              READY   STATUS    RESTARTS   AGE
+es-logging-66c49458cd-j4957       1/1     Running   0          9m12s
+kibana-logging-56d8b656cd-qkcph   1/1     Running   0          2m22s
+
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ minikube ip
+192.168.49.2
+
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl set env deployments/kibana-logging ELASTICSEARCH_HOSTS=http://192.168.49.2:31870
+deployment.apps/kibana-logging env updated
+
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl apply -f kibana-svc.yaml 
+service/kibana-service created
+
+sboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ minikube service kibana-service
+|-----------|----------------|-------------|---------------------------|
+| NAMESPACE |      NAME      | TARGET PORT |            URL            |
+|-----------|----------------|-------------|---------------------------|
+| default   | kibana-service |        5601 | http://192.168.49.2:30328 |
+|-----------|----------------|-------------|---------------------------|
+🎉  Opening service default/kibana-service in default browser...
+
+Update file logstash.conf to:
+input {
+  beats {
+    port => "5044"
+  }
+}
+filter {
+      if [message] =~ /^\{.*\}$/ {
+        json {
+          source => "message"
+        }
+      }
+      if [ClientHost] {
+        geoip {
+          source => "ClientHost"
+        }
+      }
+    }
+output {
+  elasticsearch {
+    hosts => ["http://192.168.49.2:31870"]
+    index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}"
+  }
+  stdout {
+    codec => rubydebug
+  }
+}
+
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl create configmap log-manual-pipeline --from-file ./logstash.conf
+configmap/log-manual-pipeline created
+
+the name corespond to the confogMap at file logstash-deployment.yml
+
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl apply -f logstash-deployment.yml 
+deployment.apps/logstash-logging created
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl apply -f logstash-svc.yml 
+service/logstash-service created
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl get pods
+NAME                               READY   STATUS    RESTARTS   AGE
+es-logging-66c49458cd-j4957        1/1     Running   0          53m
+kibana-logging-67c66d58dd-kscr9    1/1     Running   0          39m
+logstash-logging-fc6ffb597-pv5dq   1/1     Running   0          23s
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl get svc
+NAME               TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+es-service         NodePort    10.98.127.246    <none>        9200:31870/TCP   51m
+kibana-service     NodePort    10.97.230.105    <none>        5601:30328/TCP   38m
+kubernetes         ClusterIP   10.96.0.1        <none>        443/TCP          55m
+logstash-service   NodePort    10.110.180.216   <none>        5044:30163/TCP   37s
+
+Update file filebeat.yaml so that the output hosts is the minikube ip : port of the logstash-service:
+filebeat.inputs:
+ - type: log
+   paths:
+    - /tmp/output.log
+ 
+output:
+  logstash:
+    hosts: [ "192.168.49.2:30163" ]
+
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl create configmap beat-manual-config --from-file ./filebeat.yml
+configmap/beat-manual-config created
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl get cm
+NAME                  DATA   AGE
+beat-manual-config    1      13s
+kube-root-ca.crt      1      60m
+log-manual-pipeline   1      7m44s
+
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ kubectl apply -f app-deployment.yml 
+deployment.apps/logging-app-manual created
+
+osboxes@osboxes:~/work/ELK-Stack-Kubernetes-minikube$ minikube service kibana-service
+|-----------|----------------|-------------|---------------------------|
+| NAMESPACE |      NAME      | TARGET PORT |            URL            |
+|-----------|----------------|-------------|---------------------------|
+| default   | kibana-service |        5601 | http://192.168.49.2:30328 |
+|-----------|----------------|-------------|---------------------------|
+🎉  Opening service default/kibana-service in default browser...
+
+
