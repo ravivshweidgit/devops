@@ -174,10 +174,15 @@ Retrieve the Grafana admin password:
 kubectl get secret --namespace logging loki-grafana -o jsonpath="{.data.admin-password}"
 ```
 
-Decode the base64 password:
+This will output a base64 encoded string. Copy this string and decode it:
 
 ```bash
-echo "YOUR_BASE64_PASSWORD" | base64 --decode
+echo "ZWJMcldSWFhneFoyWWNPb3FsWHlGS05RRVo3M2FMamVFbHk1Yzl4VA==" | base64 --decode
+```
+
+**Expected Output:**
+```
+ebLrWRXXgxZ2YcOoqlXyFKNQEZ73aLjeEly5c9xT
 ```
 
 ### Step 2: Port Forward to Access Grafana
@@ -197,8 +202,8 @@ kubectl port-forward -n logging svc/loki-grafana 3000:80
 
 ### Step 1: View Existing Logs
 
-1. In Grafana, go to **Connections** → **Data Sources** → **Loki**
-2. Click **Explore**
+1. In Grafana, go to **Explore** (left sidebar)
+2. Select **Loki** as the data source
 3. Use label filters:
    - **Label**: `pod`
    - **Value**: `kube-proxy`
@@ -250,11 +255,17 @@ kubectl apply -f deployment.yaml
 2. Use label filters:
    - **Label**: `pod`
    - **Value**: `log-generator`
+   - **Note**: The source material has a typo "log-generetor" but the correct value is `log-generator`
 3. You should see the generated test logs at the bottom
 
 ## Advanced Configuration
 
 ### Step 1: Create Custom Promtail Configuration
+
+This advanced configuration adds custom label extraction from log content. Specifically, it:
+- Extracts `stream` and `time` fields from JSON log entries
+- Applies these as labels for better log filtering and organization
+- Only processes logs from pods with the label `app="log-generator"`
 
 Create `loki-secret.yaml` with advanced Promtail configuration:
 
@@ -370,23 +381,45 @@ stringData:
 
 ### Step 2: Apply Custom Configuration
 
-1. Delete the existing Promtail secret:
-```bash
-kubectl delete secret loki-promtail -n logging
-```
-
-2. Apply the new configuration:
+Apply the new Secret configuration:
 ```bash
 kubectl apply -f loki-secret.yaml
 ```
 
-3. Restart Promtail pod to apply new configuration:
+**Note**: We don't need to manually delete the existing secret first because `kubectl apply` will automatically replace it with the new configuration.
+
+### Step 3: Restart Promtail Pod to Apply New Configuration by deleting existing Pod
+
+First, identify the Promtail pod:
 ```bash
 kubectl get pod -n logging
-kubectl delete pod loki-promtail-[POD_ID] -n logging
 ```
 
-### Step 3: Verify New Labels
+**Expected Output:**
+```
+NAME                            READY   STATUS    RESTARTS   AGE
+loki-0                          1/1     Running   0          36m
+loki-grafana-565bd659b7-j7wff   2/2     Running   0          36m
+loki-promtail-bvd28             1/1     Running   0          36m
+```
+
+Look for the pod with name starting with `loki-promtail-` (in this example: `loki-promtail-bvd28`).
+
+Then delete the specific Promtail pod:
+```bash
+kubectl delete pod loki-promtail-bvd28 -n logging
+```
+
+**Expected Output:**
+```
+pod "loki-promtail-bvd28" deleted from logging namespace
+```
+
+**Note**: The pod name will be different in your environment. Always use the actual pod name from the `kubectl get pod` output.
+
+**Important**: When you delete the Promtail pod, Kubernetes will automatically recreate it because it's managed by a Deployment/ReplicaSet. The new pod will pick up the updated Secret configuration we just applied.
+
+### Step 4: Verify New Labels
 
 1. Refresh Grafana (F5)
 2. You should now see two new labels: `stream` and `time`
@@ -396,16 +429,18 @@ kubectl delete pod loki-promtail-[POD_ID] -n logging
 
 ### Step 1: Import Pre-built Dashboard
 
-1. In Grafana, go to **Dashboards** → **Import**
-2. Use dashboard ID: `15141`
-3. This is the "Kubernetes Service Logs" dashboard from Grafana.com
-4. URL: https://grafana.com/grafana/dashboards/15141-kubernetes-service-logs/
+1. In Grafana, go to **Dashboards** → **Import** (or use the "+" icon in the left sidebar)
+2. In the "Import via grafana.com" section, enter dashboard ID: `15141`
+3. Click **Load**
+4. This is the "Kubernetes Service Logs" dashboard from Grafana.com
+5. URL: https://grafana.com/grafana/dashboards/15141-kubernetes-service-logs/
 
 ### Step 2: Configure Dashboard
 
-1. Select your Loki datasource
+1. Select your Loki datasource from the dropdown
 2. The dashboard will automatically populate with your cluster's log data
 3. Explore different visualizations and filters
+4. You can customize the dashboard by clicking the gear icon in the top right
 
 ## Troubleshooting
 
