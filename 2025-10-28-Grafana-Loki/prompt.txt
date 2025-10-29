@@ -1,0 +1,291 @@
+Please create details student guide MD format  for the bellow example lesson:
+This lesson is about Grfana Loki
+
+minikube delete
+minikube start
+
+added  loki-values.yaml
+
+loki:
+  enabled: true
+  isDefault: true
+  url: http://{{(include "loki.serviceName" .)}}:{{ .Values.loki.service.port }}
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: http-metrics
+    initialDelaySeconds: 45
+  livenessProbe:
+    httpGet:
+      path: /ready
+      port: http-metrics
+    initialDelaySeconds: 45
+  datasource:
+    jsonData: "{}"
+    uid: ""
+
+
+promtail:
+  enabled: true
+  config:
+    logLevel: info
+    serverPort: 3101
+    clients:
+      - url: http://{{ .Release.Name }}:3100/loki/api/v1/push
+
+
+grafana:
+  enabled: true
+  sidecar:
+    datasources:
+      label: ""
+      labelValue: ""
+      enabled: true
+      maxLines: 1000
+  image:
+    tag: latest
+
+
+sudo snap install helm --classic
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-28-Grafana-Loki$ helm upgrade --install loki -f loki-values.yaml -n logging --create-namespace grafana/loki-stack
+Release "loki" does not exist. Installing it now.
+I1029 20:31:20.669437   20167 warnings.go:110] "Warning: spec.SessionAffinity is ignored for headless services"
+I1029 20:31:20.673018   20167 warnings.go:110] "Warning: spec.SessionAffinity is ignored for headless services"
+NAME: loki
+LAST DEPLOYED: Wed Oct 29 20:31:20 2025
+NAMESPACE: logging
+STATUS: deployed
+REVISION: 1
+NOTES:
+The Loki stack has been deployed to your cluster. Loki can now be added as a datasource in Grafana.
+
+See http://docs.grafana.org/features/datasources/loki/ for more detail.
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-28-Grafana-Loki$ 
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-28-Grafana-Loki$ kubectl get pods -n logging
+NAME                            READY   STATUS    RESTARTS   AGE
+loki-0                          1/1     Running   0          90s
+loki-grafana-565bd659b7-j7wff   2/2     Running   0          90s
+loki-promtail-bvd28             1/1     Running   0          90s
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-28-Grafana-Loki$ kubectl get svc -n logging
+NAME              TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+loki              ClusterIP   10.96.215.69     <none>        3100/TCP   3m7s
+loki-grafana      ClusterIP   10.103.179.129   <none>        80/TCP     3m7s
+loki-headless     ClusterIP   None             <none>        3100/TCP   3m7s
+loki-memberlist   ClusterIP   None             <none>        7946/TCP   3m7s
+
+
+
+kubectl get secret --namespace logging loki-grafana -o jsonpath="{.data.admin-password}"
+echo "ZWJMcldSWFhneFoyWWNPb3FsWHlGS05RRVo3M2FMamVFbHk1Yzl4VZWJMcldSWFhneFoyWWNPb3FsWHlGS05RRVo3M2FMamVFbHk1Yzl4VA==" | base64 --decode
+
+ebLrWRXXgxZ2YcOoqlXyFKNQEZ73aLjeEly5c9xT
+
+login with admin and password
+
+in console goto connections, data sources Loki Explore ,   Label filters :  pod  ,  select value kube-proxe , excute query
+You will see logs ...
+
+
+adding deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-generator
+  labels:
+    app: log-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-generator
+  template:
+    metadata:
+      labels:
+        app: log-generator
+    spec:
+      containers:
+        - name: log-generator
+          image: busybox
+          command:
+            - /bin/sh
+            - -c
+            - |
+              while true; do
+                echo "$(date) - Test log message from log-generator"
+                sleep 5
+              done
+
+ebLrWRXXgxZ2YcOoqlXyFKNQEZ73aLjeEly5c9xTravivm@ravivm-N501VW:~/projects/devops/2025-10-28-Grafana-Loki$ kubectl apply -f deployment.yaml 
+deployment.apps/log-generator created
+
+
+back to grafana :
+Labael pod ,  value log-generetor
+
+see logs in buttom
+
+
+now we will try to add lables to loki , by changing promtail configuration
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-28-Grafana-Loki$ kubectl delete secret loki-promtail -n logging
+secret "loki-promtail" deleted from logging namespace
+
+
+added  loki-secret.yaml
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: loki-promtail
+  namespace: logging
+  labels:
+    app: promtail
+type: Opaque
+stringData:
+  promtail.yaml: |
+    server:
+      log_level: info
+      log_format: logfmt
+      http_listen_port: 3101
+
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+
+    positions:
+      filename: /run/promtail/positions.yaml
+
+    scrape_configs:
+      - job_name: kubernetes-pods
+        pipeline_stages:
+          - cri: {}
+          - match:
+              selector: '{app="log-generator"}'
+              stages:
+                - json:
+                    expressions:
+                      stream: stream
+                      time: time
+                - labels:
+                    stream:
+                    time:
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels:
+              - __meta_kubernetes_pod_controller_name
+            regex: ([0-9a-z-.]+?)(-[0-9a-f]{8,10})?
+            action: replace
+            target_label: __tmp_controller_name
+          - source_labels:
+              - __meta_kubernetes_pod_label_app_kubernetes_io_name
+              - __meta_kubernetes_pod_label_app
+              - __tmp_controller_name
+              - __meta_kubernetes_pod_name
+            regex: ^;*([^;]+)(;.*)?$
+            action: replace
+            target_label: app
+          - source_labels:
+              - __meta_kubernetes_pod_label_app_kubernetes_io_instance
+              - __meta_kubernetes_pod_label_instance
+            regex: ^;*([^;]+)(;.*)?$
+            action: replace
+            target_label: instance
+          - source_labels:
+              - __meta_kubernetes_pod_label_app_kubernetes_io_component
+              - __meta_kubernetes_pod_label_component
+            regex: ^;*([^;]+)(;.*)?$
+            action: replace
+            target_label: component
+          - action: replace
+            source_labels:
+            - __meta_kubernetes_pod_node_name
+            target_label: node_name
+          - action: replace
+            source_labels:
+            - __meta_kubernetes_namespace
+            target_label: namespace
+          - action: replace
+            replacement: $1
+            separator: /
+            source_labels:
+            - namespace
+            - app
+            target_label: job
+          - action: replace
+            source_labels:
+            - __meta_kubernetes_pod_name
+            target_label: pod
+          - action: replace
+            source_labels:
+            - __meta_kubernetes_pod_container_name
+            target_label: container
+          - action: replace
+            replacement: /var/log/pods/*$1/*.log
+            separator: /
+            source_labels:
+            - __meta_kubernetes_pod_uid
+            - __meta_kubernetes_pod_container_name
+            target_label: __path__
+          - action: replace
+            regex: true/(.*)
+            replacement: /var/log/pods/*$1/*.log
+            separator: /
+            source_labels:
+            - __meta_kubernetes_pod_annotationpresent_kubernetes_io_config_hash
+            - __meta_kubernetes_pod_annotation_kubernetes_io_config_hash
+            - __meta_kubernetes_pod_container_name
+            target_label: __path__
+
+    limits_config:
+
+    tracing:
+      enabled: false
+
+now we will apply this loki secret
+
+kubectl apply -f loki-secret.yaml
+
+
+now we need to delete the pod , so new configuration will be applied
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-10-28-Grafana-Loki$ kubectl get pod -n logging
+NAME                            READY   STATUS    RESTARTS   AGE
+loki-0                          1/1     Running   0          36m
+loki-grafana-565bd659b7-j7wff   2/2     Running   0          36m
+loki-promtail-bvd28             1/1     Running   0          36m
+
+kubectl delete pod loki-promtail-bvd28 -n logging
+pod "loki-promtail-bvd28" deleted from logging namespace
+
+
+back to grafana - refresh f5
+now we have 2 new lables stream and time.
+
+
+Loki Kubernetes Logs
+
+https://grafana.com/grafana/dashboards/15141-kubernetes-service-logs/
+Get this dashboard id : 15141
+import this dash board to grafana (Dash board menu)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
