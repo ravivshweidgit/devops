@@ -1,0 +1,114 @@
+Please create details student guide MD format  for the bellow example lesson:
+This lesson is about Victoria Metrics
+
+minikube delete
+minikube start
+
+installing victoria Metrics
+
+
+helm repo add vm https://victoriametrics.github.io/helm-charts/
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-11-02-Victoria-Metrics$ helm repo add vm https://victoriametrics.github.io/helm-charts/
+"vm" has been added to your repositories
+
+helm repo update
+
+kubectl create namespace monitoring
+
+helm install vm-stack vm/victoria-metrics-k8s-stack -n monitoring
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-11-02-Victoria-Metrics$ kubectl get pods -n monitoring
+NAME                                                            READY   STATUS    RESTARTS   AGE
+vm-stack-grafana-fd49b998b-668tg                                1/2     Running   0          73s
+vm-stack-kube-state-metrics-6458866c94-889hf                    1/1     Running   0          73s
+vm-stack-prometheus-node-exporter-bt88n                         1/1     Running   0          73s
+vm-stack-victoria-metrics-operator-86675f6fb7-mgbhp             1/1     Running   0          73s
+vmagent-vm-stack-victoria-metrics-k8s-stack-c94644cf-cd4n2      2/2     Running   0          43s
+vmsingle-vm-stack-victoria-metrics-k8s-stack-7b5bb8bc67-5h9vp   1/1     Running   0          25s
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-11-02-Victoria-Metrics$ kubectl get all -A
+NAMESPACE     NAME                                                                READY   STATUS    RESTARTS        AGE
+kube-system   pod/coredns-66bc5c9577-4ldgb                                        1/1     Running   0               8m44s
+kube-system   pod/etcd-minikube                                                   1/1     Running   0               8m50s
+kube-system   pod/kube-apiserver-minikube                                         1/1     Running   0               8m50s
+kube-system   pod/kube-controller-manager-minikube                                1/1     Running   0               8m50s
+kube-system   pod/kube-proxy-4rg7d                                                1/1     Running   0               8m44s
+kube-system   pod/kube-scheduler-minikube                                         1/1     Running   0               8m50s
+kube-system   pod/storage-provisioner                                             1/1     Running   1 (8m13s ago)   8m48s
+monitoring    pod/vm-stack-grafana-fd49b998b-668tg                                2/2     Running   0               4m20s
+monitoring    pod/vm-stack-kube-state-metrics-6458866c94-889hf                    1/1     Running   0               4m20s
+monitoring    pod/vm-stack-prometheus-node-exporter-bt88n                         1/1     Running   0               4m20s
+monitoring    pod/vm-stack-victoria-metrics-operator-86675f6fb7-mgbhp             1/1     Running   0               4m20s
+monitoring    pod/vmagent-vm-stack-victoria-metrics-k8s-stack-c94644cf-cd4n2      2/2     Running   0               3m50s
+monitoring    pod/vmalert-vm-stack-victoria-metrics-k8s-stack-b95786dd4-btxn7     2/2     Running   0               118s
+monitoring    pod/vmalertmanager-vm-stack-victoria-metrics-k8s-stack-0            2/2     Running   0               2m58s
+monitoring    pod/vmsingle-vm-stack-victoria-metrics-k8s-stack-7b5bb8bc67-5h9vp   1/1     Running   0               3m32s
+
+NAMESPACE     NAME                                                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+default       service/kubernetes                                                    ClusterIP   10.96.0.1        <none>        443/TCP                      8m51s
+kube-system   service/kube-dns                                                      ClusterIP   10.96.0.10       <none>        53/UDP,53/TCP,9153/TCP       8m50s
+kube-system   service/vm-stack-victoria-metrics-k8s-stack-core-dns                  ClusterIP   None             <none>        9153/TCP                     4m20s
+kube-system   service/vm-stack-victoria-metrics-k8s-stack-kube-controller-manager   ClusterIP   None             <none>        10257/TCP                    4m20s
+kube-system   service/vm-stack-victoria-metrics-k8s-stack-kube-etcd                 ClusterIP   None             <none>        2379/TCP                     4m20s
+kube-system   service/vm-stack-victoria-metrics-k8s-stack-kube-scheduler            ClusterIP   None             <none>        10259/TCP                    4m20s
+monitoring    service/vm-stack-grafana                                              ClusterIP   10.101.214.57    <none>        80/TCP                       4m20s
+monitoring    service/vm-stack-kube-state-metrics                                   ClusterIP   10.109.8.123     <none>        8080/TCP                     4m20s
+monitoring    service/vm-stack-prometheus-node-exporter                             ClusterIP   10.104.91.96     <none>        9100/TCP                     4m20s
+monitoring    service/vm-stack-victoria-metrics-operator                            ClusterIP   10.103.217.181   <none>        8080/TCP,9443/TCP            4m20s
+monitoring    service/vmagent-vm-stack-victoria-metrics-k8s-stack                   ClusterIP   10.105.156.166   <none>        8429/TCP                     3m50s
+monitoring    service/vmalert-vm-stack-victoria-metrics-k8s-stack                   ClusterIP   10.96.104.8      <none>        8080/TCP                     118s
+monitoring    service/vmalertmanager-vm-stack-victoria-metrics-k8s-stack            ClusterIP   None             <none>        9093/TCP,9094/TCP,9094/UDP   2m58s
+monitoring    service/vmsingle-vm-stack-victoria-metrics-k8s-stack                  ClusterIP   10.106.149.49    <none>        8428/TCP                     3m33s
+
+NAMESPACE     NAME                                               DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+kube-system   daemonset.apps/kube-proxy                          1         1         1       1            1           kubernetes.io/os=linux   8m50s
+monitoring    daemonset.apps/vm-stack-prometheus-node-exporter   1         1         1       1            1           kubernetes.io/os=linux   4m20s
+
+NAMESPACE     NAME                                                           READY   UP-TO-DATE   AVAILABLE   AGE
+kube-system   deployment.apps/coredns                                        1/1     1            1           8m50s
+monitoring    deployment.apps/vm-stack-grafana                               1/1     1            1           4m20s
+monitoring    deployment.apps/vm-stack-kube-state-metrics                    1/1     1            1           4m20s
+monitoring    deployment.apps/vm-stack-victoria-metrics-operator             1/1     1            1           4m20s
+monitoring    deployment.apps/vmagent-vm-stack-victoria-metrics-k8s-stack    1/1     1            1           3m50s
+monitoring    deployment.apps/vmalert-vm-stack-victoria-metrics-k8s-stack    1/1     1            1           118s
+monitoring    deployment.apps/vmsingle-vm-stack-victoria-metrics-k8s-stack   1/1     1            1           3m33s
+
+NAMESPACE     NAME                                                                      DESIRED   CURRENT   READY   AGE
+kube-system   replicaset.apps/coredns-66bc5c9577                                        1         1         1       8m44s
+monitoring    replicaset.apps/vm-stack-grafana-fd49b998b                                1         1         1       4m20s
+monitoring    replicaset.apps/vm-stack-kube-state-metrics-6458866c94                    1         1         1       4m20s
+monitoring    replicaset.apps/vm-stack-victoria-metrics-operator-86675f6fb7             1         1         1       4m20s
+monitoring    replicaset.apps/vmagent-vm-stack-victoria-metrics-k8s-stack-c94644cf      1         1         1       3m50s
+monitoring    replicaset.apps/vmalert-vm-stack-victoria-metrics-k8s-stack-b95786dd4     1         1         1       118s
+monitoring    replicaset.apps/vmsingle-vm-stack-victoria-metrics-k8s-stack-7b5bb8bc67   1         1         1       3m32s
+
+NAMESPACE    NAME                                                                  READY   AGE
+monitoring   statefulset.apps/vmalertmanager-vm-stack-victoria-metrics-k8s-stack   1/1     2m58s
+ravivm@ravivm-N501VW:~/projects/devops/2025-11-02-Victoria-Metrics$ 
+
+open grafana:
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-11-02-Victoria-Metrics$ kubectl get secret -n monitoring vm-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+1rpO3pFD4ST8yHuk7z8DKFH5mGxyRlDzKKO3uEmE
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-11-02-Victoria-Metrics$ kubectl port-forward deployment/vm-stack-grafana 3000:3000 -n monitoring
+Forwarding from 127.0.0.1:3000 -> 3000
+Forwarding from [::1]:3000 -> 3000
+
+http://localhost:3000
+admin
+1rpO3pFD4ST8yHuk7z8DKFH5mGxyRlDzKKO3uEmE
+
+
+Home Dashboards VictoriaMetrics - operator
+Home Dashboards VictoriaMetrics - vmagent
+
+run some queryes : 
+Data sources :  Home Explore VictoriaMetrics : vm_blocks ru  query
+                                               vm_app_start_timestamp
+
+
+
+
