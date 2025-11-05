@@ -1,0 +1,93 @@
+Please create details student guide MD format  for the bellow example lesson:
+This lesson is about OpenTelemetry
+
+minikube delete
+minikube start
+
+installing OpenTelemetry
+
+ravivm@ravivm-N501VW:~/projects$ git clone https://github.com/rutu-sh/otel-k8s-experiments
+Cloning into 'otel-k8s-experiments'...
+remote: Enumerating objects: 317, done.
+remote: Counting objects: 100% (317/317), done.
+remote: Compressing objects: 100% (218/218), done.
+remote: Total 317 (delta 95), reused 218 (delta 47), pack-reused 0 (from 0)
+Receiving objects: 100% (317/317), 28.86 MiB | 13.28 MiB/s, done.
+Resolving deltas: 100% (95/95), done.
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-11-05-OpenTelemetry/otel-k8s-experiments/experiments/single-app-single-collector/k8s$ kubectl apply -k .
+namespace/opentelemetry-demo created
+configmap/otel-collector-config created
+configmap/single-app-single-collector created
+service/otel-collector created
+service/single-app-single-collector created
+deployment.apps/opentelemetry-collector created
+deployment.apps/single-app-single-collector created
+
+ravivm@ravivm-N501VW:~/projects$ kubectl get deployment -n opentelemetry-demo
+NAME                          READY   UP-TO-DATE   AVAILABLE   AGE
+opentelemetry-collector       1/1     1            1           83s
+single-app-single-collector   1/1     1            1           83s
+
+ravivm@ravivm-N501VW:~/projects$ kubectl get all -A
+NAMESPACE            NAME                                               READY   STATUS    RESTARTS      AGE
+kube-system          pod/coredns-66bc5c9577-k5mwb                       1/1     Running   0             43m
+kube-system          pod/etcd-minikube                                  1/1     Running   0             43m
+kube-system          pod/kube-apiserver-minikube                        1/1     Running   0             43m
+kube-system          pod/kube-controller-manager-minikube               1/1     Running   0             43m
+kube-system          pod/kube-proxy-b6pst                               1/1     Running   0             43m
+kube-system          pod/kube-scheduler-minikube                        1/1     Running   0             43m
+kube-system          pod/storage-provisioner                            1/1     Running   1 (42m ago)   43m
+opentelemetry-demo   pod/opentelemetry-collector-86944cc7f-9844n        1/1     Running   0             2m39s
+opentelemetry-demo   pod/single-app-single-collector-5fccfd678b-tlj64   1/1     Running   0             2m39s
+
+NAMESPACE            NAME                                  TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                  AGE
+default              service/kubernetes                    ClusterIP   10.96.0.1       <none>        443/TCP                  43m
+kube-system          service/kube-dns                      ClusterIP   10.96.0.10      <none>        53/UDP,53/TCP,9153/TCP   43m
+opentelemetry-demo   service/otel-collector                ClusterIP   10.109.51.221   <none>        4317/TCP                 2m39s
+opentelemetry-demo   service/single-app-single-collector   NodePort    10.104.23.173   <none>        8000:30000/TCP           2m39s
+
+NAMESPACE     NAME                        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+kube-system   daemonset.apps/kube-proxy   1         1         1       1            1           kubernetes.io/os=linux   43m
+
+NAMESPACE            NAME                                          READY   UP-TO-DATE   AVAILABLE   AGE
+kube-system          deployment.apps/coredns                       1/1     1            1           43m
+opentelemetry-demo   deployment.apps/opentelemetry-collector       1/1     1            1           2m39s
+opentelemetry-demo   deployment.apps/single-app-single-collector   1/1     1            1           2m39s
+
+NAMESPACE            NAME                                                     DESIRED   CURRENT   READY   AGE
+kube-system          replicaset.apps/coredns-66bc5c9577                       1         1         1       43m
+opentelemetry-demo   replicaset.apps/opentelemetry-collector-86944cc7f        1         1         1       2m39s
+opentelemetry-demo   replicaset.apps/single-app-single-collector-5fccfd678b   1         1         1       2m39s
+
+ravivm@ravivm-N501VW:~/projects$ minikube service single-app-single-collector -n opentelemetry-demo 
+┌────────────────────┬─────────────────────────────┬─────────────┬───────────────────────────┐
+│     NAMESPACE      │            NAME             │ TARGET PORT │            URL            │
+├────────────────────┼─────────────────────────────┼─────────────┼───────────────────────────┤
+│ opentelemetry-demo │ single-app-single-collector │ 8000        │ http://192.168.49.2:30000 │
+└────────────────────┴─────────────────────────────┴─────────────┴───────────────────────────┘
+🎉  Opening service opentelemetry-demo/single-app-single-collector in default browser...
+ravivm@ravivm-N501VW:~/projects$ Opening in existing browser session.
+
+swager : 
+http://192.168.49.2:30000/docs
+
+
+create one record with POST  
+
+
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-11-05-OpenTelemetry/otel-k8s-experiments/experiments/single-app-single-collector/k8s$ kubectl get pod -n opentelemetry-demo
+NAME                                           READY   STATUS    RESTARTS   AGE
+opentelemetry-collector-86944cc7f-9844n        1/1     Running   0          17m
+single-app-single-collector-5fccfd678b-tlj64   1/1     Running   0          17m
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-11-05-OpenTelemetry/otel-k8s-experiments/experiments/single-app-single-collector/k8s$ kubectl logs single-app-single-collector-5fccfd678b-tlj64 -n opentelemetry-demo | less
+
+ravivm@ravivm-N501VW:~/projects/devops/2025-11-05-OpenTelemetry/otel-k8s-experiments/experiments/single-app-single-collector/k8s$ kubectl get pod -n opentelemetry-demo
+NAME                                           READY   STATUS    RESTARTS   AGE
+opentelemetry-collector-86944cc7f-9844n        1/1     Running   0          22m
+single-app-single-collector-5fccfd678b-tlj64   1/1     Running   0          22m
+ravivm@ravivm-N501VW:~/projects/devops/2025-11-05-OpenTelemetry/otel-k8s-experiments/experiments/single-app-single-collector/k8s$ kubectl logs opentelemetry-collector-86944cc7f-9844n   -n opentelemetry-demo | less
+
+
