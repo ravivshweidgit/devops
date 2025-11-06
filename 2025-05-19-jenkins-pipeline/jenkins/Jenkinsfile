@@ -1,0 +1,113 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins/my-jenkins-jenkins-agent: "true"
+spec:
+  containers:
+  - name: jnlp
+    image: jenkins/inbound-agent:3309.v27b_9314fd1a_4-1
+    resources:
+      limits:
+        memory: "512Mi"
+        cpu: "512m"
+      requests:
+        memory: "512Mi"
+        cpu: "512m"
+  - name: docker
+    image: docker:latest
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: docker-sock
+      mountPath: /var/run/docker.sock
+  - name: kubectl
+    image: bitnami/kubectl:latest
+    command:
+    - cat
+    tty: true
+  volumes:
+  - name: docker-sock
+    hostPath:
+      path: /var/run/docker.sock
+'''
+            defaultContainer 'jnlp'
+        }
+    }
+    
+    environment {
+        // Define environment variables
+        DOCKER_HUB_REPO = 'ravivshweid1/test'  // Based on your log, this is the repo you're using
+        APP_NAME = 'eran-app'
+        NAMESPACE = 'default'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                container('docker') {
+                    script {
+                        // Build the Docker image
+                        sh "docker build -t ${DOCKER_HUB_REPO}:${env.BUILD_NUMBER} ."
+                        
+                        // Tag as latest too
+                        sh "docker tag ${DOCKER_HUB_REPO}:${env.BUILD_NUMBER} ${DOCKER_HUB_REPO}:latest"
+                    }
+                }
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                container('docker') {
+                    // Run a simple test
+                    sh "docker run --rm ${DOCKER_HUB_REPO}:${env.BUILD_NUMBER} python -c 'import datetime; print(f\"Test passed: {datetime.datetime.now()}\")'"
+                }
+            }
+        }
+        
+        stage('Push to Docker Hub') {
+            steps {
+                container('docker') {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                        // Login to Docker Hub
+                        sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
+                        
+                        // Push the Docker image
+                        sh "docker push ${DOCKER_HUB_REPO}:${env.BUILD_NUMBER}"
+                        sh "docker push ${DOCKER_HUB_REPO}:latest"
+                        
+                        // Logout from Docker Hub
+                        sh "docker logout"
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "Pipeline executed successfully! CI is done."
+        }
+        failure {
+            echo "Pipeline failed! Please check the logs for details."
+        }
+        always {
+            container('docker') {
+                // Clean up local Docker images
+                sh "docker rmi ${DOCKER_HUB_REPO}:${env.BUILD_NUMBER} || true"
+                sh "docker rmi ${DOCKER_HUB_REPO}:latest || true"
+            }
+        }
+    }
+}
